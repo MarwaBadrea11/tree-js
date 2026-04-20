@@ -1,0 +1,300 @@
+:root {
+  --bg-1: #f6edd3;
+  --bg-2: #d8e4cf;
+  --bg-3: #acc8bf;
+  --panel: rgba(13, 30, 39, 0.78);
+  --panel-border: rgba(255, 255, 255, 0.18);
+  --text-main: #f3f3ea;
+  --text-dim: #c7d2cf;
+  --accent-a: #ff8d3a;
+  --accent-b: #f9d65f;
+  --accent-c: #3cc4a4;
+  --danger: #ef6f6c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  font-family: "Outfit", sans-serif;
+  color: var(--text-main);
+  background:
+    radial-gradient(circle at 12% 15%, rgba(255, 171, 90, 0.28), transparent 38%),
+    radial-gradient(circle at 90% 85%, rgba(39, 194, 160, 0.25), transparent 40%),
+    linear-gradient(165deg, var(--bg-1), var(--bg-2) 40%, var(--bg-3));
+}
+
+#game-root {
+  position: fixed;
+  inset: 0;
+}
+
+#game-root canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+#hud {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(300px, 360px);
+  justify-content: space-between;
+  align-content: start;
+  gap: 14px;
+  padding: 16px;
+  pointer-events: none;
+}
+
+.panel {
+  pointer-events: auto;
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  padding: 14px 16px;
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)),
+    var(--panel);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+}
+
+#left-panel h1 {
+  margin: 0;
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.03em;
+}
+
+.subtitle {
+  margin: 4px 0 8px;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+}
+
+#status-text {
+  margin: 8px 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.09);
+  border-left: 4px solid var(--accent-a);
+  font-size: 0.94rem;
+}
+
+.meter-wrap {
+  margin-bottom: 14px;
+}
+
+.meter-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.meter-track {
+  position: relative;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background:
+    linear-gradient(90deg, rgba(255, 141, 58, 0.12), rgba(60, 196, 164, 0.18));
+}
+
+#power-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, var(--accent-a), var(--accent-b) 48%, var(--accent-c));
+  transition: width 70ms linear;
+}
+
+#help-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+#help-grid div {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#help-grid strong {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 0.92rem;
+}
+
+#help-grid span {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+#keyboard-note {
+  margin: 12px 0;
+  color: var(--text-dim);
+  font-size: 0.84rem;
+}
+
+#reset-btn,
+#roll-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  color: #0d1e27;
+  background: linear-gradient(120deg, var(--accent-b), var(--accent-a));
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+#reset-btn:hover,
+#roll-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+#right-panel h2 {
+  margin: 0 0 10px;
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 1.08rem;
+}
+
+#physics-list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+#physics-list div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#physics-list dt {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+}
+
+#physics-list dd {
+  margin: 0;
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 0.86rem;
+  text-align: right;
+}
+
+#round-summary {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+#round-summary div {
+  display: grid;
+  gap: 2px;
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+#round-summary span {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+#round-summary strong {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 0.95rem;
+}
+
+#round-log {
+  margin: 10px 0 0;
+  padding-left: 22px;
+  max-height: 154px;
+  overflow: auto;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+#round-log li {
+  margin: 4px 0;
+}
+
+#mobile-controls {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  width: min(680px, calc(100% - 28px));
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+#mobile-controls h3 {
+  margin: 0;
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 0.88rem;
+}
+
+#mobile-controls label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+#mobile-controls input[type="range"] {
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  #hud {
+    grid-template-columns: 1fr;
+    justify-content: start;
+  }
+
+  #right-panel {
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 800px) {
+  #left-panel {
+    max-width: none;
+  }
+
+  #right-panel {
+    display: none;
+  }
+
+  #mobile-controls {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
