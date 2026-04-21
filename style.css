@@ -91,6 +91,42 @@ body {
   font-size: 0.94rem;
 }
 
+#physics-config {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+#physics-config label {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#physics-config span {
+  color: var(--text-dim);
+  font-size: 0.83rem;
+}
+
+#physics-config select {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 7px 8px;
+  background: rgba(12, 28, 36, 0.85);
+  color: var(--text-main);
+  font-family: "Outfit", sans-serif;
+  font-size: 0.9rem;
+}
+
+#physics-config select:focus {
+  outline: 2px solid rgba(249, 214, 95, 0.8);
+  outline-offset: 1px;
+}
+
 .meter-wrap {
   margin-bottom: 14px;
 }
@@ -153,8 +189,17 @@ body {
   font-size: 0.84rem;
 }
 
+#audio-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
 #reset-btn,
-#roll-btn {
+#roll-btn,
+#music-toggle-btn,
+#sfx-toggle-btn {
   border: 0;
   border-radius: 10px;
   padding: 10px 12px;
@@ -169,9 +214,17 @@ body {
 }
 
 #reset-btn:hover,
-#roll-btn:hover {
+#roll-btn:hover,
+#music-toggle-btn:hover,
+#sfx-toggle-btn:hover {
   transform: translateY(-1px);
   filter: brightness(1.02);
+}
+
+#music-toggle-btn.off,
+#sfx-toggle-btn.off {
+  background: linear-gradient(120deg, #90a4ae, #607d8b);
+  color: #eaf0f2;
 }
 
 #right-panel h2 {

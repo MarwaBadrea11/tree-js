@@ -10,8 +10,8 @@
       href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="/assets/index-MYT-XKxe.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BGO5lp1W.css">
+    <script type="module" crossorigin src="/assets/index-SL6gFCSC.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DHat7mgK.css">
   </head>
   <body>
     <div id="app">
@@ -22,6 +22,35 @@
           <h1>Bowling Lab</h1>
           <p class="subtitle">Three.js + Custom Physics (No physics engine)</p>
           <p id="status-text">Aim with A/D, hold Space, release to roll.</p>
+
+          <div id="physics-config">
+            <label>
+              <span>Launch Method</span>
+              <select id="launch-mode-select">
+                <option value="normal" selected>Normal Roll</option>
+                <option value="slingshot">Slingshot Arc</option>
+                <option value="cannon">Cannon Shot</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Surface Type</span>
+              <select id="surface-type-select">
+                <option value="normal" selected>Normal Ground</option>
+                <option value="water">Water Ground</option>
+                <option value="dense-air">Strong Air Resistance</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Ball Weight</span>
+              <select id="ball-type-select">
+                <option value="light">Light Ball</option>
+                <option value="normal" selected>Normal Ball</option>
+                <option value="heavy">Heavy Ball</option>
+              </select>
+            </label>
+          </div>
 
           <div class="meter-wrap">
             <div class="meter-label">
@@ -41,6 +70,10 @@
           </div>
 
           <p id="keyboard-note">On mobile/tablet, use the sliders and the Roll button below.</p>
+          <div id="audio-controls">
+            <button id="music-toggle-btn" type="button">Music: On</button>
+            <button id="sfx-toggle-btn" type="button">Voice/SFX: On</button>
+          </div>
           <button id="reset-btn" type="button">Reset Game</button>
         </section>
 
@@ -48,15 +81,21 @@
           <h2>Physics Sidebar</h2>
           <dl id="physics-list">
             <div><dt>State</dt><dd id="stat-state">aiming</dd></div>
+            <div><dt>Launch Mode</dt><dd id="stat-launch-mode">normal</dd></div>
+            <div><dt>Surface</dt><dd id="stat-surface">normal</dd></div>
+            <div><dt>Ball Type</dt><dd id="stat-ball-type">normal</dd></div>
             <div><dt>Frame Time</dt><dd id="stat-dt">0.0 ms</dd></div>
             <div><dt>Ball Speed</dt><dd id="stat-speed">0.00 m/s</dd></div>
             <div><dt>Horizontal Speed</dt><dd id="stat-horizontal-speed">0.00 m/s</dd></div>
             <div><dt>Kinetic Energy</dt><dd id="stat-kinetic">0.00 J</dd></div>
             <div><dt>Momentum</dt><dd id="stat-momentum">0.00 kg m/s</dd></div>
             <div><dt>Friction Force</dt><dd id="stat-friction">0.00 N</dd></div>
+            <div><dt>Air Drag Force</dt><dd id="stat-air-drag">0.00 N</dd></div>
             <div><dt>Gravity Force</dt><dd id="stat-gravity">0.00 N</dd></div>
+            <div><dt>Ground Rebound</dt><dd id="stat-rebound">0.00</dd></div>
             <div><dt>Aim Angle</dt><dd id="stat-angle">0.0 deg</dd></div>
             <div><dt>Launch Speed</dt><dd id="stat-launch-speed">0.00 m/s</dd></div>
+            <div><dt>Ball Mass</dt><dd id="stat-mass">7.00 kg</dd></div>
             <div><dt>Ball Position</dt><dd id="stat-ballpos">0.00, 0.00, 0.00</dd></div>
             <div><dt>Standing Pins</dt><dd id="stat-standing">10 / 10</dd></div>
           </dl>
