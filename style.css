@@ -36,7 +36,7 @@ body {
 
 #game-root {
   position: fixed;
-  inset: 0;
+  inset:0;
 }
 
 #game-root canvas {
@@ -217,8 +217,8 @@ body {
 #roll-btn:hover,
 #music-toggle-btn:hover,
 #sfx-toggle-btn:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.02);
+  transform: translateY(-2px);
+  filter: brightness(1.62);
 }
 
 #music-toggle-btn.off,

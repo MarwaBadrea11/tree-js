@@ -20,7 +20,7 @@ const BALL_RADIUS = 0.33;
 const DEFAULT_BALL_MASS = 7.0;
 const BALL_START = new THREE.Vector3(0, BALL_RADIUS, 8.3);
 const BALL_DAMPING = 0.998;
-const WALL_RESTITUTION = 0.34;
+const WALL_RESTITUTION = 0.4;
 
 const PIN_MASS = 1.5;
 const PIN_COLLIDER_RADIUS = 0.2;
@@ -231,7 +231,7 @@ function createLane() {
 
   const sideMaterial = new THREE.MeshStandardMaterial({
     color: 0x373d45,
-    roughness: 0.72,
+    roughness: 0.0,
     metalness: 0.15,
   });
 
@@ -249,7 +249,7 @@ function createLane() {
     new THREE.BoxGeometry(2.8, 0.08, 2.2),
     new THREE.MeshStandardMaterial({
       color: 0xc79a67,
-      roughness: 0.38,
+      roughness: 0.18,
       metalness: 0.06,
     })
   );
@@ -288,9 +288,9 @@ ballBodyMesh.castShadow = true;
 ballGroup.add(ballBodyMesh);
 
 const ballStripeMaterial = new THREE.MeshStandardMaterial({
-  color: 0xe9f1f7,
+  color: 0x000000,
   roughness: 0.32,
-  metalness: 0.08,
+  metalness: 0.98,
 });
 
 const equatorStripe = new THREE.Mesh(
