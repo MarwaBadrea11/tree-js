@@ -23,17 +23,27 @@ const BALL_DAMPING = 0.998;
 const WALL_RESTITUTION = 0.4;
 
 const PIN_MASS = 1.5;
-const PIN_COLLIDER_RADIUS = 0.2;
-const PIN_CAP_RADIUS = 0.14;
-const PIN_HALF_SEGMENT = 0.36;
-const PIN_LINEAR_DAMPING = 0.987;
-const PIN_ANGULAR_DAMPING = 0.977;
-const KNOCK_ANGLE = THREE.MathUtils.degToRad(28);
-
-const BALL_PIN_RESTITUTION = 0.22;
-const PIN_PIN_RESTITUTION = 0.18;
-const CONTACT_FRICTION = 0.26;
-
+// const PIN_COLLIDER_RADIUS = 0.2;
+// const PIN_CAP_RADIUS = 0.14;
+// const PIN_HALF_SEGMENT = 0.36;
+// const PIN_COLLIDER_RADIUS = 0.17;
+// const PIN_CAP_RADIUS = 0.09;
+// const PIN_HALF_SEGMENT = 0.55;
+const PIN_COLLIDER_RADIUS = 0.12;
+const PIN_CAP_RADIUS = 0.06;
+const PIN_HALF_SEGMENT = 0.40;
+// const PIN_LINEAR_DAMPING = 0.987;
+// const PIN_ANGULAR_DAMPING = 0.977;
+const PIN_LINEAR_DAMPING = 0.994;
+const PIN_ANGULAR_DAMPING = 0.992;
+// const KNOCK_ANGLE = THREE.MathUtils.degToRad(28);
+const KNOCK_ANGLE = THREE.MathUtils.degToRad(15);
+// const BALL_PIN_RESTITUTION = 0.22;
+// const PIN_PIN_RESTITUTION = 0.18;
+// const CONTACT_FRICTION = 0.26;
+const BALL_PIN_RESTITUTION = 0.18;
+const PIN_PIN_RESTITUTION = 0.14;
+const CONTACT_FRICTION = 0.34;
 const MIN_LAUNCH_SPEED = 5.0;
 const MAX_LAUNCH_SPEED = 18.0;
 const CHARGE_RATE = 0.62;
@@ -342,32 +352,74 @@ const pinStripeMaterial = new THREE.MeshStandardMaterial({
   roughness: 0.45,
   metalness: 0.1,
 });
-
 function makePinMesh() {
   const group = new THREE.Group();
+  group.scale.setScalar(0.72);
+
+  const points = [
+    new THREE.Vector2(0.00, -0.55),
+    new THREE.Vector2(0.11, -0.52),
+    new THREE.Vector2(0.16, -0.42),
+    new THREE.Vector2(0.18, -0.25),
+    new THREE.Vector2(0.14, -0.05),
+    new THREE.Vector2(0.10, 0.15),
+    new THREE.Vector2(0.12, 0.32),
+    new THREE.Vector2(0.09, 0.48),
+    new THREE.Vector2(0.06, 0.62),
+    new THREE.Vector2(0.07, 0.78),
+    new THREE.Vector2(0.05, 0.90),
+    new THREE.Vector2(0.00, 0.95),
+  ];
 
   const body = new THREE.Mesh(
-    new THREE.CapsuleGeometry(PIN_CAP_RADIUS, PIN_HALF_SEGMENT * 2, 8, 18),
+    new THREE.LatheGeometry(points, 32),
     pinBodyMaterial
   );
+
   body.castShadow = true;
   body.receiveShadow = true;
   group.add(body);
 
   const stripe1 = new THREE.Mesh(
-    new THREE.TorusGeometry(PIN_CAP_RADIUS * 0.82, 0.026, 8, 22),
+    new THREE.TorusGeometry(0.09, 0.018, 12, 32),
     pinStripeMaterial
   );
+
   stripe1.rotation.x = Math.PI / 2;
-  stripe1.position.y = 0.08;
+  stripe1.position.y = 0.28;
   group.add(stripe1);
 
   const stripe2 = stripe1.clone();
-  stripe2.position.y = -0.02;
+  stripe2.position.y = 0.18;
   group.add(stripe2);
 
   return group;
 }
+// function makePinMesh() {
+//   const group = new THREE.Group();
+
+//   const body = new THREE.Mesh(
+//     new THREE.CapsuleGeometry(PIN_CAP_RADIUS, PIN_HALF_SEGMENT * 2, 8, 18),
+//     pinBodyMaterial
+//   );
+//   body.castShadow = true;
+//   body.receiveShadow = true;
+//   group.add(body);
+
+//   const stripe1 = new THREE.Mesh(
+//     new THREE.TorusGeometry(PIN_CAP_RADIUS * 0.82, 0.026, 8, 22),
+//     pinStripeMaterial
+//   );
+//   stripe1.rotation.x = Math.PI / 2;
+//   stripe1.position.y = 0.08;
+//   group.add(stripe1);
+
+//   const stripe2 = stripe1.clone();
+//   stripe2.position.y = -0.02;
+//   group.add(stripe2);
+
+//   return group;
+// }
 
 const pins = [];
 
@@ -380,7 +432,8 @@ function createPins() {
     for (let col = 0; col <= row; col += 1) {
       const x = (col - row * 0.5) * spacingX;
       const z = PIN_HEAD_Z + row * spacingZ;
-      const y = PIN_CAP_RADIUS + PIN_HALF_SEGMENT;
+      // const y = PIN_CAP_RADIUS + PIN_HALF_SEGMENT;
+      const y = 0.48;
 
       const mesh = makePinMesh();
       mesh.position.set(x, y, z);
@@ -1395,7 +1448,11 @@ function integratePins(dt) {
       continue;
     }
 
-    pin.mesh.position.addScaledVector(pin.velocity, dt);
+  // Gravity
+pin.velocity.y -= GRAVITY * dt;
+
+// Move pin
+pin.mesh.position.addScaledVector(pin.velocity, dt);
     pin.velocity.multiplyScalar(linearDecay);
 
     const angularSpeed = pin.angularVelocity.length();
@@ -1418,9 +1475,27 @@ function integratePins(dt) {
       pin.velocity.x *= -0.2;
     }
 
-    const up = tempA.set(0, 1, 0).applyQuaternion(pin.mesh.quaternion);
-    pin.mesh.position.y = PIN_CAP_RADIUS + PIN_HALF_SEGMENT * Math.abs(up.y);
+    // const up = tempA.set(0, 1, 0).applyQuaternion(pin.mesh.quaternion);
+    // pin.mesh.position.y = PIN_CAP_RADIUS + PIN_HALF_SEGMENT * Math.abs(up.y);
+const up = tempA.set(0, 1, 0).applyQuaternion(pin.mesh.quaternion);
 
+const bottomHeight =
+  (PIN_CAP_RADIUS + PIN_HALF_SEGMENT) * Math.abs(up.y);
+
+if (pin.mesh.position.y < bottomHeight) {
+  pin.mesh.position.y = bottomHeight;
+
+  if (pin.velocity.y < 0) {
+    pin.velocity.y *= -0.15;
+  }
+
+  if (Math.abs(pin.velocity.y) < 0.1) {
+    pin.velocity.y = 0;
+  }
+
+  pin.velocity.x *= 0.97;
+  pin.velocity.z *= 0.97;
+}
     if (pin.velocity.lengthSq() < 0.00008) {
       pin.velocity.set(0, 0, 0);
     }
@@ -1571,7 +1646,8 @@ function solveBallPinCollisions() {
     if (horizontalNormal.lengthSq() > 0.00001) {
       horizontalNormal.normalize();
       const tipAxis = tempA.set(horizontalNormal.z, 0, -horizontalNormal.x).normalize();
-      const tipStrength = result.impulse * 0.36 * config.impactMultiplier;
+      // const tipStrength = result.impulse * 0.36 * config.impactMultiplier;
+      const tipStrength = result.impulse * 0.9 * config.impactMultiplier;
       pin.angularVelocity.addScaledVector(tipAxis, tipStrength);
       pin.angularVelocity.y += (Math.random() - 0.5) * 0.18;
     }
@@ -1615,7 +1691,8 @@ function solvePinPinCollisions() {
         horizontalNormal.normalize();
         const axisA = tempA.set(horizontalNormal.z, 0, -horizontalNormal.x).normalize();
         const axisB = axisA.clone().multiplyScalar(-1);
-        const tipStrength = result.impulse * 0.2;
+        // const tipStrength = result.impulse * 0.2;
+        const tipStrength = result.impulse * 0.55;
         a.angularVelocity.addScaledVector(axisA, tipStrength);
         b.angularVelocity.addScaledVector(axisB, tipStrength);
       }
