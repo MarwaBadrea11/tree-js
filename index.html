@@ -59,15 +59,7 @@
             </label>
           </div>
 
-          <div class="meter-wrap">
-            <div class="meter-label">
-              <span>Roll Power</span>
-              <span id="power-text">0%</span>
-            </div>
-            <div class="meter-track">
-              <div id="power-fill"></div>
-            </div>
-          </div>
+
 
           <div id="help-grid">
             <div><strong>A / D</strong><span>Aim left or right</span></div>
@@ -122,15 +114,28 @@
 
       <section id="mobile-controls" class="panel">
         <h3>Touch Controls</h3>
-        <label for="aim-slider">Aim</label>
-        <input id="aim-slider" type="range" min="-20" max="20" value="0" step="1" />
-
-        <label for="power-slider">Power</label>
-        <input id="power-slider" type="range" min="0" max="100" value="0" step="1" />
-
+        <div class="ctrl-group">
+          <label for="aim-slider">Aim</label>
+          <input id="aim-slider" type="range" min="-20" max="20" value="0" step="1" />
+        </div>
+        <div class="ctrl-group">
+          <label for="power-slider">Power</label>
+          <input id="power-slider" type="range" min="0" max="100" value="0" step="1" />
+        </div>
         <button id="roll-btn" type="button">Roll Ball</button>
       </section>
     </div>
+
+      <!-- Standalone power indicator – fixed to right edge -->
+      <div id="power-indicator">
+        <div id="power-track">
+          <div id="power-fill"></div>
+        </div>
+        <div id="power-label-row">
+          <span id="power-label">POWER</span>
+          <span id="power-text">0%</span>
+        </div>
+      </div>
 
     <script type="module" src="/main.js"></script>
   </body>

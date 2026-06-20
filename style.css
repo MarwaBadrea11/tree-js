@@ -306,24 +306,33 @@ body {
   transform: translateX(-50%);
   width: min(680px, calc(100% - 28px));
   display: grid;
-  grid-template-columns: auto 1fr auto 1fr auto;
+  grid-template-columns: 1fr 1fr auto;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 #mobile-controls h3 {
   margin: 0;
   font-family: "Chakra Petch", sans-serif;
   font-size: 0.88rem;
+  grid-column: 1 / -1;
+}
+
+.ctrl-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 #mobile-controls label {
   font-size: 0.8rem;
   color: var(--text-dim);
+  line-height: 1;
 }
 
 #mobile-controls input[type="range"] {
   width: 100%;
+  margin: 0;
 }
 
 @media (max-width: 1100px) {
@@ -349,6 +358,10 @@ body {
   #mobile-controls {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+
+  #mobile-controls h3 {
+    grid-column: 1;
   }
 }
 
@@ -412,4 +425,69 @@ body {
 @keyframes gameEndFadeIn {
   from { opacity: 0; transform: scale(0.92); }
   to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Power Indicator – fixed right edge ───────────────────────────────────── */
+#power-indicator {
+  position: fixed;
+  right: 20px;
+  bottom: 50%;
+  transform: translateY(50%);
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 100;
+}
+
+#power-track {
+  position: relative;
+  width: 14px;
+  height: 180px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(60, 196, 164, 0.18), rgba(255, 141, 58, 0.12));
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+
+#power-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, var(--accent-c), var(--accent-b) 48%, var(--accent-a));
+  transition: height 70ms linear;
+}
+
+#power-label-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  width: 100%;
+}
+
+#power-label {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: right;
+  color: var(--text-dim);
+}
+
+#power-text {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: right;
+  color: var(--text-main);
 }

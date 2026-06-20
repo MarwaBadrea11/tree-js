@@ -57,7 +57,22 @@ export function resolveSphereContact(
   if (normalSpeed <= 0.01) {
     jNormal = (-(1 + restitution) * normalSpeed) / invMassSum;
 
-    _imp.copy(_n).multiplyScalar(jNormal);
+    // ── Vertical Y-impulse cap ──────────────────────────────────────────────
+    // Prevent exaggerated upward pop-ups by limiting how much of the impulse
+    // is allowed to act along the Y-axis.  The horizontal components are left
+    // untouched so lateral pin scatter still looks realistic.
+    // The cap is derived from the impulse magnitude: the Y component of the
+    // collision normal is scaled back to at most 30 % of the total impulse.
+    // This reflects the weight/inertia of a real bowling pin (1.5 kg) that
+    // won't fly vertically like a feather when struck.
+    const Y_NORMAL_CAP = 0.30;
+    const cappedN = _n.clone();
+    if (Math.abs(cappedN.y) > Y_NORMAL_CAP) {
+      cappedN.y = Math.sign(cappedN.y) * Y_NORMAL_CAP;
+      cappedN.normalize();
+    }
+
+    _imp.copy(cappedN).multiplyScalar(jNormal);
     velA.addScaledVector(_imp, -invMassA);
     velB.addScaledVector(_imp,  invMassB);
 

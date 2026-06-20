@@ -59,7 +59,7 @@ export const hud = {
 // ── Power bar ─────────────────────────────────────────────────────────────────
 export function updatePowerUI() {
   const pct = Math.round(aim.chargePower * 100);
-  hud.powerFill.style.width = `${pct}%`;
+  hud.powerFill.style.height = `${pct}%`;
   hud.powerText.textContent = `${pct}%`;
 }
 
