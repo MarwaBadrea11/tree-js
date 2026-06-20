@@ -1,26 +1,21 @@
-/**
- * engine.js
- * ─────────────────────────────────────────────────────────────────────────────
- * Three.js renderer, scene, camera, clock, lights – initialised once and
- * exported for use across every other module.
- */
+
 
 import * as THREE from "three";
 
-// ── Scene ─────────────────────────────────────────────────────────────────────
+
 export const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xe8dcc0);
 scene.fog = new THREE.Fog(0xe8dcc0, 20, 60);
 
-// ── Camera ────────────────────────────────────────────────────────────────────
+
 export const camera = new THREE.PerspectiveCamera(
   60,
   window.innerWidth / window.innerHeight,
   0.1,
-  120
+100
 );
 
-// ── Renderer ──────────────────────────────────────────────────────────────────
+
 const appRoot = document.querySelector("#game-root");
 
 export const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -30,13 +25,13 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
 appRoot.appendChild(renderer.domElement);
 
-// ── Clock / accumulator ───────────────────────────────────────────────────────
+
 export const clock = new THREE.Clock();
 export let accumulator = 0;
 export function addToAccumulator(v) { accumulator += v; }
 export function drainAccumulator(dt) { accumulator -= dt; }
 
-// ── Lights ────────────────────────────────────────────────────────────────────
+
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.58);
 scene.add(ambientLight);
 
@@ -54,7 +49,7 @@ const rimLight = new THREE.DirectionalLight(0x89ffe7, 0.32);
 rimLight.position.set(-7, 5, -20);
 scene.add(rimLight);
 
-// ── Responsive resize ─────────────────────────────────────────────────────────
+
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();

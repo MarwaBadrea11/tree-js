@@ -1,27 +1,4 @@
-/**
- * collisions.js
- * ─────────────────────────────────────────────────────────────────────────────
- * All collision detection and impulse resolution routines.
- *
- * Physics model:
- *   Sphere–sphere contact resolved by the generalised impulse law:
- *
- *     j  = -(1 + e) * (v_rel · n̂)
- *          ────────────────────────
- *              1/m_A + 1/m_B
- *
- *   where  e   = coefficient of restitution
- *          n̂  = contact normal (unit)
- *          v_rel = v_B − v_A
- *
- *   Tangential (friction) impulse is clamped by Coulomb's law:
- *     |j_t| ≤ μ * |j_n|
- *
- *   Angular velocity change from contact (tipping torque):
- *     Δω = (j / I) * (r̂ × n̂)
- *   For a solid sphere  I = (2/5) * m * r²,  but we fold this into the
- *   empirical tipStrength coefficients to keep the simulation tunable.
- */
+
 
 import * as THREE from "three";
 import {
@@ -39,30 +16,15 @@ import { getActivePhysicsConfig } from "../core/game.js";
 import { playImpactSfx, playWallHitSfx } from "../audio/audioEngine.js";
 import { clamp }                  from "../core/game.js";
 
-// ── Reusable temporaries ──────────────────────────────────────────────────────
-const _n   = new THREE.Vector3();  // contact normal
-const _vr  = new THREE.Vector3();  // relative velocity
-const _t   = new THREE.Vector3();  // tangent direction
-const _imp = new THREE.Vector3();  // impulse vector
-const _hN  = new THREE.Vector3();  // horizontal normal
-const _ax  = new THREE.Vector3();  // tipping axis
 
-// ── Generic sphere–sphere contact resolver ─────────────────────────────────────
-/**
- * Resolves a sphere–sphere contact in-place, modifying positions and velocities.
- *
- * @param {THREE.Vector3} posA
- * @param {THREE.Vector3} velA
- * @param {number} invMassA
- * @param {number} radiusA
- * @param {THREE.Vector3} posB
- * @param {THREE.Vector3} velB
- * @param {number} invMassB
- * @param {number} radiusB
- * @param {number} restitution  - e (coefficient of restitution)
- * @param {number} friction     - μ (Coulomb friction coefficient)
- * @returns {{ normal: THREE.Vector3, impulse: number } | null}
- */
+const _n   = new THREE.Vector3();  
+const _vr  = new THREE.Vector3(); 
+const _t   = new THREE.Vector3();  
+const _imp = new THREE.Vector3();  
+const _hN  = new THREE.Vector3();  
+const _ax  = new THREE.Vector3();  
+
+
 export function resolveSphereContact(
   posA, velA, invMassA, radiusA,
   posB, velB, invMassB, radiusB,
@@ -73,38 +35,34 @@ export function resolveSphereContact(
   let dist = _n.length();
   const minDist = radiusA + radiusB;
 
-  if (dist >= minDist) return null;  // no overlap → no collision
+  if (dist >= minDist) return null;  
 
-  // Handle degenerate zero-distance case
+ 
   if (dist < 1e-5) { _n.set(1, 0, 0); dist = 1; }
 
-  // Contact normal  n̂  (A → B)
+
   _n.multiplyScalar(1 / dist);
 
   const penetration = minDist - dist;
   const invMassSum  = invMassA + invMassB;
   if (invMassSum <= 0) return null;
 
-  // ── Positional correction (Baumgarte-style projection) ──────────────────
-  const correction = penetration / invMassSum;
-  posA.addScaledVector(_n, -correction * invMassA);
-  posB.addScaledVector(_n,  correction * invMassB);
-
-  // ── Normal impulse ────────────────────────────────────────────────────────
+  // ── 1. Impulse resolution (must happen BEFORE positional correction) ───────
   _vr.subVectors(velB, velA);
   const normalSpeed = _vr.dot(_n);
 
   let jNormal = 0;
-  if (normalSpeed < 0) {
-    //   j = -(1 + e) * (v_rel · n̂) / (1/m_A + 1/m_B)
+  // Resolve even when bodies are just touching (normalSpeed <= 0) to avoid
+  // repeated micro-penetrations that drain velocity every frame.
+  if (normalSpeed <= 0.01) {
     jNormal = (-(1 + restitution) * normalSpeed) / invMassSum;
 
     _imp.copy(_n).multiplyScalar(jNormal);
     velA.addScaledVector(_imp, -invMassA);
     velB.addScaledVector(_imp,  invMassB);
 
-    // ── Friction (Coulomb-clamped tangential impulse) ─────────────────────
-    _t.copy(_vr).addScaledVector(_n, -normalSpeed);  // tangential component of v_rel
+    // Friction (tangential) impulse – clamped to Coulomb cone
+    _t.copy(_vr).addScaledVector(_n, -normalSpeed);
     const tangentLen = _t.length();
     if (tangentLen > 1e-5) {
       _t.multiplyScalar(1 / tangentLen);
@@ -117,18 +75,23 @@ export function resolveSphereContact(
     }
   }
 
+  // ── 2. Positional correction – push apart by a small fraction only ─────────
+  // Using ~30 % of penetration prevents objects from sinking while avoiding
+  // the "jitter sink" where full correction repeatedly re-triggers collisions.
+  const CORRECTION_PERCENT = 0.3;
+  const SLOP = 0.002; // ignore sub-mm penetrations to reduce jitter
+  const correctionMag = Math.max(penetration - SLOP, 0) * CORRECTION_PERCENT / invMassSum;
+  posA.addScaledVector(_n, -correctionMag * invMassA);
+  posB.addScaledVector(_n,  correctionMag * invMassB);
+
   return { normal: _n.clone(), impulse: jNormal };
 }
 
-// ── Ball ↔ Wall / Gutter ───────────────────────────────────────────────────────
-/**
- * Keeps the ball within lane bounds.
- * Back wall uses a soft pushback (no re-entry past start line + margin).
- */
+
 export function solveBallWallCollision() {
   const limit = LANE_HALF_WIDTH - ball.radius;
 
-  // Left wall
+
   if (ball.mesh.position.x > limit) {
     const hitSpeed = Math.abs(ball.velocity.x);
     ball.mesh.position.x = limit;
@@ -138,7 +101,7 @@ export function solveBallWallCollision() {
     }
   }
 
-  // Right wall
+ 
   if (ball.mesh.position.x < -limit) {
     const hitSpeed = Math.abs(ball.velocity.x);
     ball.mesh.position.x = -limit;
@@ -148,7 +111,7 @@ export function solveBallWallCollision() {
     }
   }
 
-  // Back wall  (CRS: ball should never travel back past LANE_START_Z + margin)
+
   if (ball.mesh.position.z > LANE_START_Z + 0.8) {
     const hitSpeed = Math.abs(ball.velocity.z);
     ball.mesh.position.z = LANE_START_Z + 0.8;
@@ -159,12 +122,7 @@ export function solveBallWallCollision() {
   }
 }
 
-// ── Ball ↔ Pin ─────────────────────────────────────────────────────────────────
-/**
- * Iterates all active pins and resolves sphere–sphere contacts with the ball.
- * After the impulse the pin receives a tipping angular-velocity component:
- *   Δω = tipStrength * (n̂_horiz × ĵ)
- */
+
 export function solveBallPinCollisions() {
   const config = getActivePhysicsConfig();
 
@@ -182,7 +140,6 @@ export function solveBallPinCollisions() {
 
     playImpactSfx(result.impulse * 0.08);
 
-    // Tipping torque – rotate pin away from contact
     _hN.copy(result.normal);
     _hN.y = 0;
     if (_hN.lengthSq() > 0.00001) {
@@ -195,11 +152,6 @@ export function solveBallPinCollisions() {
   }
 }
 
-// ── Pin ↔ Pin ─────────────────────────────────────────────────────────────────
-/**
- * Resolves all pair-wise pin–pin sphere contacts.
- * The tipping contribution is symmetric: pins exchange angular kicks.
- */
 export function solvePinPinCollisions() {
   for (let i = 0; i < pins.length; i++) {
     const a = pins[i];
@@ -231,11 +183,6 @@ export function solvePinPinCollisions() {
   }
 }
 
-// ── Knock-down evaluation ─────────────────────────────────────────────────────
-/**
- * Marks a pin as knocked when its tilt exceeds KNOCK_ANGLE (15°).
- * tilt = acos(|up · ĵ|)  where up is the pin's local +Y axis in world space.
- */
 export function markKnockedPins() {
   const _upVec = new THREE.Vector3();
 

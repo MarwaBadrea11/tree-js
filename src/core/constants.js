@@ -1,55 +1,45 @@
-/**
- * constants.js
- * ─────────────────────────────────────────────────────────────────────────────
- * All immutable game & physics constants.
- *
- * COORDINATE REFERENCE SYSTEM (from the analytical physics report)
- * ─────────────────────────────────────────────────────────────────
- *  • The World Coordinate origin is translated so the effective lane STARTS
- *    at Z = 0.0 m and the ball travels in the NEGATIVE Z direction.
- *  • LANE_START_Z  =   0.0  m  →  entry / approach edge
- *  • BALL_START    = (0, 0.33, -1.1)  →  launch position behind start line
- *  • PIN_HEAD_Z    = -34.0  m  →  head-pin apex
- *  • LANE_END_Z    = -37.9  m  →  absolute rear end of playing area
- */
+
 
 import * as THREE from "three";
 
-// ── Simulation timestep ──────────────────────────────────────────────────────
-export const FIXED_DT = 1 / 120;       // 120 Hz fixed physics step
 
-// ── Physical constants ───────────────────────────────────────────────────────
-export const GRAVITY = 9.81;            // m/s²  (standard gravitational acceleration)
+export const FIXED_DT = 1 / 120;      
 
-// ── Lane geometry (CRS-aligned) ──────────────────────────────────────────────
-export const LANE_HALF_WIDTH = 1.08;    // m  half-width of the playing lane
-export const LANE_START_Z    = 0.0;     // m  start edge  (CRS origin on Z)
-export const LANE_END_Z      = -37.9;   // m  rear end of lane
-export const PIN_HEAD_Z      = -34.0;   // m  head-pin centre Z
 
-// ── Ball geometry & dynamics ─────────────────────────────────────────────────
-export const BALL_RADIUS       = 0.33;  // m
-export const DEFAULT_BALL_MASS = 7.0;   // kg
-/** Launch position: approach area just behind the start line */
+export const GRAVITY = 9.81;           
+
+
+export const LANE_HALF_WIDTH = 1.08;    
+export const LANE_START_Z    = 0.0;     
+export const LANE_END_Z      = -37.9;   
+export const PIN_HEAD_Z      = -34.0;  
+// Back edge of the last pin row (row 3 at PIN_HEAD_Z - 3 * 0.62 = -35.86)
+// The ball is considered "past the pins" when it crosses this threshold.
+export const PIN_BACK_Z      = -35.86; 
+
+
+export const BALL_RADIUS       = 0.33;  
+export const DEFAULT_BALL_MASS = 7.0;   
+
 export const BALL_START = new THREE.Vector3(0, BALL_RADIUS, -1.1);
-export const BALL_DAMPING     = 0.998;  // per-step residual linear damping
-export const WALL_RESTITUTION = 0.4;    // side-gutter coefficient of restitution
+export const BALL_DAMPING     = 0.998;  
+export const WALL_RESTITUTION = 0.4;   
 
-// ── Pin geometry & dynamics ───────────────────────────────────────────────────
-export const PIN_MASS             = 1.5;   // kg
-export const PIN_COLLIDER_RADIUS  = 0.12;  // m  sphere-approx radius for collision
-export const PIN_CAP_RADIUS       = 0.06;  // m  top-cap radius
-export const PIN_HALF_SEGMENT     = 0.40;  // m  half the pin body height
-export const PIN_LINEAR_DAMPING   = 0.994; // per-step coefficient
-export const PIN_ANGULAR_DAMPING  = 0.992; // per-step coefficient
 
-/** Tipping angle (rad) beyond which a pin is declared knocked down */
+export const PIN_MASS             = 1.5;   
+export const PIN_COLLIDER_RADIUS  = 0.12;  
+export const PIN_CAP_RADIUS       = 0.06;  
+export const PIN_HALF_SEGMENT     = 0.40;  
+export const PIN_LINEAR_DAMPING   = 0.998; // was 0.994 – less air drag so pins fly freely
+export const PIN_ANGULAR_DAMPING  = 0.997; // was 0.992 – pins keep spinning after impact
+
+
 export const KNOCK_ANGLE = THREE.MathUtils.degToRad(15);
 
 // ── Collision coefficients of restitution ────────────────────────────────────
-export const BALL_PIN_RESTITUTION = 0.18;
-export const PIN_PIN_RESTITUTION  = 0.14;
-export const CONTACT_FRICTION     = 0.34;
+export const BALL_PIN_RESTITUTION = 0.55;  // was 0.18 – realistic bowling elasticity
+export const PIN_PIN_RESTITUTION  = 0.48;  // was 0.14 – pins transfer energy snappily
+export const CONTACT_FRICTION     = 0.22;  // was 0.34 – less friction so tangential impulse doesn't bleed energy
 
 // ── Aiming & charging ────────────────────────────────────────────────────────
 export const MIN_LAUNCH_SPEED = 5.0;    // m/s

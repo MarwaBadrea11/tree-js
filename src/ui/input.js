@@ -23,6 +23,7 @@ import {
   updateAudioButtons,
 } from "../audio/audioEngine.js";
 import { ball } from "../entities/Ball.js";
+import { setCameraMode, CAMERA_MODES } from "./camera.js";
 
 // ── Keyboard ──────────────────────────────────────────────────────────────────
 function onKeyDown(event) {
@@ -35,6 +36,11 @@ function onKeyDown(event) {
   if (event.code === "Enter" && session.gameState === GAME_STATE.GAMEOVER) {
     resetGame(); return;
   }
+
+  // ── Camera mode shortcuts ─────────────────────────────────────────────────
+  if (event.code === "Digit1") { setCameraMode(CAMERA_MODES.DEFAULT);    return; }
+  if (event.code === "Digit2") { setCameraMode(CAMERA_MODES.SIDE_LEFT);  return; }
+  if (event.code === "Digit3") { setCameraMode(CAMERA_MODES.SIDE_RIGHT); return; }
 
   if (event.code === "ArrowLeft"  || event.code === "KeyA") keys.left  = true;
   if (event.code === "ArrowRight" || event.code === "KeyD") keys.right = true;

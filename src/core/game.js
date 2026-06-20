@@ -151,11 +151,23 @@ function clearKnockedPins() {
 
 // ── Ball reset ────────────────────────────────────────────────────────────────
 export function resetBallForAim() {
-  ball.mesh.position.copy(BALL_START);
+  // Snap position and rotation back to the approach area
+  ball.mesh.position.set(BALL_START.x, BALL_START.y, BALL_START.z);
   ball.mesh.quaternion.identity();
+  // Hard-zero all motion so there is no residual velocity from the previous throw
   ball.velocity.set(0, 0, 0);
-  session.launchSpeed = 0;
-  keys.space          = false;
+  session.launchSpeed    = 0;
+  session.rollingTimer   = 0;
+  session.settleTimer    = 0;
+  session.ballPassedPins = false;  // reset one-shot flag for next throw
+  keys.space             = false;
+
+  // Hide the overlay immediately when a new throw begins.
+  const overlay = document.getElementById("game-end-overlay");
+  if (overlay) {
+    clearTimeout(overlay._hideTimer);
+    overlay.classList.remove("visible");
+  }
 
   if (session.gameState !== GAME_STATE.GAMEOVER) {
     session.gameState = GAME_STATE.AIMING;
@@ -199,6 +211,39 @@ export function applySelectionSettings(launchModeSelectEl, surfaceSelectEl, ball
   applyBallType(ballSelectEl.value);
 }
 
+// ── Ball-past-pins notification (one-shot per throw) ─────────────────────────
+/**
+ * Called from main.js checkThrowLifecycle when the ball crosses PIN_BACK_Z.
+ * Guards itself with session.ballPassedPins so it fires exactly once per throw.
+ *
+ * Shows the #game-end-overlay defined in index.html.
+ * The overlay is a separate DOM element – finishThrow()'s setStatus() calls
+ * cannot touch it, so the message is guaranteed to appear.
+ */
+export function notifyBallPastPins() {
+  if (session.ballPassedPins) return;
+  session.ballPassedPins = true;
+
+  // Show the full-screen overlay (toggled via CSS class).
+  const overlay = document.getElementById("game-end-overlay");
+  if (overlay) {
+    // Re-trigger the CSS animation on repeat throws.
+    overlay.style.animation = "none";
+    // Force reflow so the browser re-registers the animation.
+    void overlay.offsetWidth;
+    overlay.style.animation = "";
+    overlay.classList.add("visible");
+
+    // Auto-hide after 2.5 s so it clears before the next throw UI appears.
+    clearTimeout(overlay._hideTimer);
+    overlay._hideTimer = setTimeout(() => {
+      overlay.classList.remove("visible");
+    }, 2500);
+  }
+
+  console.log("the game end");
+}
+
 // ── Game-over ─────────────────────────────────────────────────────────────────
 let _statusEl = null;
 
@@ -214,6 +259,12 @@ function setStatus(msg) {
 function endGame() {
   session.gameState = GAME_STATE.GAMEOVER;
   ball.velocity.set(0, 0, 0);
+
+  // Snap ball back to the approach area immediately so it doesn't sit
+  // frozen at the pin deck while the Game Over screen is visible.
+  ball.mesh.position.set(BALL_START.x, BALL_START.y, BALL_START.z);
+  ball.mesh.quaternion.identity();
+
   setStatus(`Game over. Total pinfall: ${session.totalPinfall}. Press R to restart.`);
 
   if (ensureAudioReady()) {

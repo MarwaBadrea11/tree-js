@@ -28,6 +28,7 @@ export const session = {
   launchSpeed:       0,
   rollingTimer:      0,
   settleTimer:       0,
+  ballPassedPins:    false,  // true once per throw after ball crosses PIN_BACK_Z
 };
 
 // ── Aim / charge transient values ─────────────────────────────────────────────

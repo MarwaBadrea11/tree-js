@@ -44,6 +44,7 @@ import {
   LANE_END_Z,
   LANE_HALF_WIDTH,
   PIN_HEAD_Z,
+  PIN_BACK_Z,
   MAX_ROLL_TIME,
 } from "./src/core/constants.js";
 
@@ -55,6 +56,7 @@ import {
   resetGame,
   updateAimAndCharge,
   finishThrow,
+  notifyBallPastPins,
   registerHudCallbacks,
   registerStatusElement,
   registerSliderElements,
@@ -144,6 +146,20 @@ function checkThrowLifecycle(dt) {
       ball.mesh.position.z < LANE_END_Z - 1.2 ||
       Math.abs(ball.mesh.position.x) > LANE_HALF_WIDTH + 1.4;
 
+    // ── One-shot "the game end" notification ──────────────────────────────────
+    // Fires as soon as the ball crosses the back edge of the pin deck.
+    // Also immediately transitions to SETTLING so the ball stops rolling
+    // into the back wall and the throw resolves without getting stuck.
+    if (ball.mesh.position.z < PIN_BACK_Z) {
+      notifyBallPastPins();
+      // Freeze ball completely — zero velocity AND lock position at floor level
+      ball.velocity.set(0, 0, 0);
+      ball.mesh.position.y = BALL_RADIUS; // keep it sitting on the lane, not falling
+      session.gameState   = GAME_STATE.SETTLING;
+      session.settleTimer = 0;
+      return; // done — settling block below will handle finishThrow
+    }
+
     const shouldSettle =
       leftArea ||
       (!airborne && pastPins  && speed < 0.25) ||
@@ -182,16 +198,19 @@ function checkThrowLifecycle(dt) {
 function stepPhysics(dt) {
   updateAimAndCharge(dt);
 
-  if (
-    session.gameState === GAME_STATE.ROLLING ||
-    session.gameState === GAME_STATE.SETTLING
-  ) {
+  if (session.gameState === GAME_STATE.ROLLING) {
     integrateBall(dt);
     integratePins(dt);
     solveBallWallCollision();
     solveBallPinCollisions();
     solvePinPinCollisions();
     markKnockedPins();
+    checkThrowLifecycle(dt);
+  }
+
+  if (session.gameState === GAME_STATE.SETTLING) {
+    // Only integrate pins — ball stays frozen at its resting position
+    integratePins(dt);
     checkThrowLifecycle(dt);
   }
 }
