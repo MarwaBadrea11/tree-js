@@ -281,6 +281,67 @@ function endGame() {
   speakAnnouncement("Game over");
 }
 
+// ── Gutter throw (called from main.js when ball leaves the lane laterally) ────
+/**
+ * Handles the state transition for a gutter ball — zero pins are added for
+ * this throw, then we advance to throw 2 (or the next frame if it was throw 2).
+ *
+ * The overlay and ball freeze are already handled in main.js before this is
+ * called, so this function only drives game-flow.
+ */
+export function gutterThrow() {
+  if (
+    session.gameState !== GAME_STATE.SETTLING &&
+    session.gameState !== GAME_STATE.ROLLING
+  ) return;
+
+  // A gutter ball scores 0 knocked pins for this throw.
+  session.lastThrowPins = 0;
+
+  if (session.throwInRound === 1) {
+    // First throw gutter → give the player throw 2 with all pins still up.
+    session.firstThrowPins = 0;
+    session.throwInRound   = 2;
+    clearKnockedPins(); // standing pins stay, knocked ones cleared
+    resetBallForAim();
+    setStatus(`Gutter! Throw 2. ${countStandingPins()} pins still standing.`);
+    playRoundResultSfx(false, false, 0);
+    _cbUpdateRoundLog();
+    _cbUpdateRoundSum();
+  } else {
+    // Second throw gutter → record frame (first + 0) and advance round.
+    const first      = session.firstThrowPins ?? 0;
+    const frameTotal = first + 0;
+
+    if (frameTotal === 10) {
+      // Spare via first throw + gutter (unlikely but possible if 10-pin was left)
+      session.spares++;
+      roundLogEntries.push(`Round ${session.round}: ${first} /`);
+    } else {
+      roundLogEntries.push(`Round ${session.round}: ${first}, 0`);
+    }
+
+    session.round++;
+    session.throwInRound   = 1;
+    session.firstThrowPins = null;
+
+    if (session.round <= 10) {
+      setupFreshRack();
+      resetBallForAim();
+      setStatus(`Gutter! Round ${session.round}. Aim with A/D, then roll.`);
+    } else {
+      _cbUpdateRoundLog();
+      _cbUpdateRoundSum();
+      endGame();
+      return;
+    }
+
+    playRoundResultSfx(false, false, 0);
+    _cbUpdateRoundLog();
+    _cbUpdateRoundSum();
+  }
+}
+
 // ── Finish throw (called after pins settle) ───────────────────────────────────
 export function finishThrow() {
   const standingAfter   = countStandingPins();

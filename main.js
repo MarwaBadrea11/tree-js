@@ -48,6 +48,10 @@ import {
   MAX_ROLL_TIME,
 } from "./src/core/constants.js";
 
+// Lateral boundary beyond which the ball is considered in the gutter.
+// LANE_HALF_WIDTH is the usable deck edge; the gutter channel sits just outside it.
+const GUTTER_BOUNDARY = LANE_HALF_WIDTH + 0.08;
+
 // ── Runtime state ─────────────────────────────────────────────────────────────
 import { session, GAME_STATE, roundLogEntries } from "./src/core/state.js";
 
@@ -56,6 +60,7 @@ import {
   resetGame,
   updateAimAndCharge,
   finishThrow,
+  gutterThrow,
   notifyBallPastPins,
   registerHudCallbacks,
   registerStatusElement,
@@ -135,30 +140,85 @@ setupInput();
  *
  * @param {number} dt  FIXED_DT (s)
  */
+
+// Guard flag so the gutter timeout fires only once per throw.
+let _gutterPending = false;
+
+/**
+ * Resets the gutter-pending guard. Called implicitly when the game resets so
+ * a stale timeout from a previous session cannot fire into the new game.
+ */
+function resetGutterGuard() {
+  _gutterPending = false;
+}
+
 function checkThrowLifecycle(dt) {
+  // If the game left ROLLING/SETTLING (e.g. reset via R key) clear the guard.
+  if (
+    session.gameState !== GAME_STATE.ROLLING &&
+    session.gameState !== GAME_STATE.SETTLING
+  ) {
+    _gutterPending = false;
+    return;
+  }
+
   if (session.gameState === GAME_STATE.ROLLING) {
     session.rollingTimer += dt;
 
     const speed    = ball.velocity.length();
     const airborne = ball.mesh.position.y > BALL_RADIUS + 0.08;
     const pastPins = ball.mesh.position.z < PIN_HEAD_Z - 1.8;
-    const leftArea =
-      ball.mesh.position.z < LANE_END_Z - 1.2 ||
-      Math.abs(ball.mesh.position.x) > LANE_HALF_WIDTH + 1.4;
 
-    // ── One-shot "the game end" notification ──────────────────────────────────
+    // ── Gutter / lateral out-of-bounds ────────────────────────────────────────
+    // Trigger immediately when the ball crosses the gutter boundary, before
+    // it can escape the lane geometry entirely and get stuck.
+    const inGutter = Math.abs(ball.mesh.position.x) > GUTTER_BOUNDARY;
+
+    if (inGutter && !_gutterPending) {
+      _gutterPending = true;
+
+      // Freeze ball in place so it doesn't drift further out of bounds.
+      ball.velocity.set(0, 0, 0);
+      ball.mesh.position.y = BALL_RADIUS;
+      session.gameState    = GAME_STATE.SETTLING;
+      session.settleTimer  = 0;
+
+      // Show the overlay briefly, then immediately advance the game state.
+      const overlay = document.getElementById("game-end-overlay");
+      if (overlay) {
+        overlay.style.animation = "none";
+        void overlay.offsetWidth;
+        overlay.style.animation = "";
+        overlay.classList.add("visible");
+        clearTimeout(overlay._hideTimer);
+        overlay._hideTimer = setTimeout(() => overlay.classList.remove("visible"), 1500);
+      }
+
+      // After 1.5 s trigger gutterThrow() to advance throw 1→2 or frame→next.
+      setTimeout(() => {
+        _gutterPending = false;
+        gutterThrow();
+      }, 1500);
+
+      return;
+    }
+
+    // ── One-shot "ball past pins" notification ────────────────────────────────
     // Fires as soon as the ball crosses the back edge of the pin deck.
-    // Also immediately transitions to SETTLING so the ball stops rolling
-    // into the back wall and the throw resolves without getting stuck.
+    // Transitions to SETTLING so the ball stops rolling into the back wall.
     if (ball.mesh.position.z < PIN_BACK_Z) {
       notifyBallPastPins();
       // Freeze ball completely — zero velocity AND lock position at floor level
       ball.velocity.set(0, 0, 0);
-      ball.mesh.position.y = BALL_RADIUS; // keep it sitting on the lane, not falling
-      session.gameState   = GAME_STATE.SETTLING;
-      session.settleTimer = 0;
-      return; // done — settling block below will handle finishThrow
+      ball.mesh.position.y = BALL_RADIUS;
+      session.gameState    = GAME_STATE.SETTLING;
+      session.settleTimer  = 0;
+      return; // settling block below will handle finishThrow
     }
+
+    const leftArea =
+      ball.mesh.position.z < LANE_END_Z - 1.2 ||
+      Math.abs(ball.mesh.position.x) > LANE_HALF_WIDTH + 1.4;
 
     const shouldSettle =
       leftArea ||
@@ -176,7 +236,9 @@ function checkThrowLifecycle(dt) {
 
   if (session.gameState === GAME_STATE.SETTLING) {
     session.settleTimer += dt;
-    if (session.settleTimer > 0.9 && pinsSleeping()) {
+    // Only fire finishThrow via the normal path if a gutter timeout isn't
+    // already pending (gutterThrow handles that case asynchronously).
+    if (!_gutterPending && session.settleTimer > 0.9 && pinsSleeping()) {
       finishThrow();
     }
   }
