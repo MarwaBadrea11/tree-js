@@ -29,6 +29,7 @@ export const session = {
   rollingTimer:      0,
   settleTimer:       0,
   ballPassedPins:    false,  // true once per throw after ball crosses PIN_BACK_Z
+  inGutter:          false,  // true while ball is rolling inside a side gutter channel
 };
 
 // ── Aim / charge transient values ─────────────────────────────────────────────

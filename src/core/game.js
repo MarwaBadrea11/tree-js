@@ -150,7 +150,13 @@ function clearKnockedPins() {
 }
 
 // ── Ball reset ────────────────────────────────────────────────────────────────
-export function resetBallForAim() {
+/**
+ * @param {boolean} [keepOverlay=false]
+ *   Pass true when calling from a gutter-end or ball-past-pins sequence so the
+ *   "the game end" overlay is NOT immediately dismissed.  The overlay's own
+ *   auto-hide timer will remove it after its full display duration.
+ */
+export function resetBallForAim(keepOverlay = false) {
   // Snap position and rotation back to the approach area
   ball.mesh.position.set(BALL_START.x, BALL_START.y, BALL_START.z);
   ball.mesh.quaternion.identity();
@@ -160,13 +166,18 @@ export function resetBallForAim() {
   session.rollingTimer   = 0;
   session.settleTimer    = 0;
   session.ballPassedPins = false;  // reset one-shot flag for next throw
+  session.inGutter       = false;  // ball is back on the lane
   keys.space             = false;
 
-  // Hide the overlay immediately when a new throw begins.
-  const overlay = document.getElementById("game-end-overlay");
-  if (overlay) {
-    clearTimeout(overlay._hideTimer);
-    overlay.classList.remove("visible");
+  // Only dismiss the overlay immediately when starting a fresh aim cycle.
+  // When called after a gutter/past-pins sequence the overlay should stay
+  // visible for its full auto-hide duration so the player can read it.
+  if (!keepOverlay) {
+    const overlay = document.getElementById("game-end-overlay");
+    if (overlay) {
+      clearTimeout(overlay._hideTimer);
+      overlay.classList.remove("visible");
+    }
   }
 
   if (session.gameState !== GAME_STATE.GAMEOVER) {
@@ -303,7 +314,7 @@ export function gutterThrow() {
     session.firstThrowPins = 0;
     session.throwInRound   = 2;
     clearKnockedPins(); // standing pins stay, knocked ones cleared
-    resetBallForAim();
+    // resetBallForAim() is called by main.js immediately after gutterThrow().
     setStatus(`Gutter! Throw 2. ${countStandingPins()} pins still standing.`);
     playRoundResultSfx(false, false, 0);
     _cbUpdateRoundLog();
@@ -327,7 +338,7 @@ export function gutterThrow() {
 
     if (session.round <= 10) {
       setupFreshRack();
-      resetBallForAim();
+      // resetBallForAim() is called by main.js immediately after gutterThrow().
       setStatus(`Gutter! Round ${session.round}. Aim with A/D, then roll.`);
     } else {
       _cbUpdateRoundLog();
@@ -364,7 +375,7 @@ export function finishThrow() {
 
       if (session.round <= 10) {
         setupFreshRack();
-        resetBallForAim();
+        resetBallForAim(true);  // overlay may still be showing from notifyBallPastPins
         setStatus(`Strike! Round ${session.round}. Aim your next throw.`);
       } else {
         _cbUpdateRoundLog();
@@ -375,7 +386,7 @@ export function finishThrow() {
     } else {
       session.throwInRound = 2;
       clearKnockedPins();
-      resetBallForAim();
+      resetBallForAim(true);  // overlay may still be showing from notifyBallPastPins
       setStatus(`Throw 2. ${standingAfter} pins still standing.`);
     }
   } else {
@@ -397,7 +408,7 @@ export function finishThrow() {
 
     if (session.round <= 10) {
       setupFreshRack();
-      resetBallForAim();
+      resetBallForAim(true);  // overlay may still be showing from notifyBallPastPins
       setStatus(`Round ${session.round}. Aim with A/D, then roll.`);
     } else {
       _cbUpdateRoundLog();
@@ -505,6 +516,7 @@ export function resetGame() {
   session.launchSpeed          = 0;
   session.rollingTimer         = 0;
   session.settleTimer          = 0;
+  session.inGutter             = false;
   aim.angle      = 0;
   aim.chargePower = 0;
 

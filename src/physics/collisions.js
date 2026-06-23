@@ -1,10 +1,7 @@
 
-
 import * as THREE from "three";
 import {
-  LANE_HALF_WIDTH,
   LANE_START_Z,
-  WALL_RESTITUTION,
   BALL_PIN_RESTITUTION,
   PIN_PIN_RESTITUTION,
   CONTACT_FRICTION,
@@ -104,29 +101,11 @@ export function resolveSphereContact(
 
 
 export function solveBallWallCollision() {
-  const limit = LANE_HALF_WIDTH - ball.radius;
+  // Lateral (X) gutter walls have no collision response — the ball rolls freely
+  // off the deck into the gutter channel. Rail containment is handled by the
+  // checkThrowLifecycle constraints in main.js.
 
-
-  if (ball.mesh.position.x > limit) {
-    const hitSpeed = Math.abs(ball.velocity.x);
-    ball.mesh.position.x = limit;
-    if (ball.velocity.x > 0) {
-      ball.velocity.x *= -WALL_RESTITUTION;
-      if (hitSpeed > 0.4) playWallHitSfx(hitSpeed);
-    }
-  }
-
- 
-  if (ball.mesh.position.x < -limit) {
-    const hitSpeed = Math.abs(ball.velocity.x);
-    ball.mesh.position.x = -limit;
-    if (ball.velocity.x < 0) {
-      ball.velocity.x *= -WALL_RESTITUTION;
-      if (hitSpeed > 0.4) playWallHitSfx(hitSpeed);
-    }
-  }
-
-
+  // Back wall: prevent the ball from rolling behind the approach area.
   if (ball.mesh.position.z > LANE_START_Z + 0.8) {
     const hitSpeed = Math.abs(ball.velocity.z);
     ball.mesh.position.z = LANE_START_Z + 0.8;
