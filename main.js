@@ -53,10 +53,6 @@ import {
   audioState,
 } from "./src/audio/audioEngine.js";
 
-const GUTTER_ENTRY = LANE_HALF_WIDTH + 0.07;
-const GUTTER_CENTER_X = LANE_HALF_WIDTH + 0.24;
-const GUTTER_OUTER_X = LANE_HALF_WIDTH + 0.41;
-
 let _gutterPending = false;
 
 registerStatusElement(hud.status);
@@ -73,6 +69,32 @@ createLane();
 createPins();
 setupInput();
 
+function resumeAudioContext() {
+  if (audioState && audioState.ctx && audioState.ctx.state === "suspended") {
+    audioState.ctx.resume().then(() => {
+      window.removeEventListener("click", resumeAudioContext);
+      window.removeEventListener("keydown", resumeAudioContext);
+    });
+  }
+}
+
+window.addEventListener("click", resumeAudioContext);
+window.addEventListener("keydown", resumeAudioContext);
+
+function showGameEndOverlay() {
+  const overlay = document.getElementById("game-end-overlay");
+  if (overlay) {
+    overlay.style.animation = "none";
+    void overlay.offsetWidth;
+    overlay.style.animation = "";
+    overlay.classList.add("visible");
+    clearTimeout(overlay._hideTimer);
+    overlay._hideTimer = setTimeout(() => {
+      overlay.classList.remove("visible");
+    }, 2500);
+  }
+}
+
 function checkThrowLifecycle(dt) {
   if (session.gameState !== GAME_STATE.ROLLING && session.gameState !== GAME_STATE.SETTLING) {
     _gutterPending = false;
@@ -83,60 +105,24 @@ function checkThrowLifecycle(dt) {
   if (session.gameState === GAME_STATE.ROLLING) {
     session.rollingTimer += dt;
 
-    const absX = Math.abs(ball.mesh.position.x);
     const speed = ball.velocity.length();
-    const airborne = ball.mesh.position.y > BALL_RADIUS + 0.08;
-    const pastPins = ball.mesh.position.z < PIN_HEAD_Z - 1.8;
+    const isStationary = speed < 0.03; 
+    const isExpired = session.rollingTimer > MAX_ROLL_TIME + 2.0;
 
-    if (!session.inGutter && absX > GUTTER_ENTRY) {
-      session.inGutter = true;
-      const side = Math.sign(ball.mesh.position.x);
-      ball.mesh.position.x = side * GUTTER_CENTER_X;
-      ball.velocity.x = 0;
-      if (ball.mesh.position.y < BALL_RADIUS) ball.mesh.position.y = BALL_RADIUS;
-    }
+    if (isStationary || isExpired) {
+      _gutterPending = true;
+      ball.velocity.set(0, 0, 0);
+      session.gameState = GAME_STATE.SETTLING;
+      session.settleTimer = 0;
+      
+      showGameEndOverlay();
 
-    if (session.inGutter && !_gutterPending) {
-      const side = Math.sign(ball.mesh.position.x);
-      ball.velocity.x = 0;
-
-      const clampedX = Math.min(absX, GUTTER_OUTER_X - BALL_RADIUS);
-      ball.mesh.position.x = side * clampedX;
-
-      if (ball.mesh.position.y < BALL_RADIUS) ball.mesh.position.y = BALL_RADIUS;
-
-      const reachedBack = ball.mesh.position.z < PIN_BACK_Z || ball.mesh.position.z < LANE_END_Z + 1.0;
-      const stoppedInGutter = speed < 0.05;
-
-      if (reachedBack || stoppedInGutter) {
-        _gutterPending = true;
-        ball.velocity.set(0, 0, 0);
-        ball.mesh.position.y = BALL_RADIUS;
-
-        session.gameState = GAME_STATE.SETTLING;
-        session.settleTimer = 0;
-
-        const overlay = document.getElementById("game-end-overlay");
-        if (overlay) {
-          overlay.style.animation = "none";
-          void overlay.offsetWidth;
-          overlay.style.animation = "";
-          overlay.classList.add("visible");
-          clearTimeout(overlay._hideTimer);
-          overlay._hideTimer = setTimeout(() => {
-            overlay.classList.remove("visible");
-          }, 2500);
-        }
-
-        setTimeout(() => {
-          _gutterPending = false;
-          session.inGutter = false;
-          gutterThrow();
-          resetBallForAim(true);
-        }, 1500);
-
-        return;
-      }
+      setTimeout(() => {
+        _gutterPending = false;
+        session.inGutter = false;
+        gutterThrow();
+        resetBallForAim(true);
+      }, 1500);
       return;
     }
 
@@ -146,20 +132,8 @@ function checkThrowLifecycle(dt) {
       ball.mesh.position.y = BALL_RADIUS;
       session.gameState = GAME_STATE.SETTLING;
       session.settleTimer = 0;
+      showGameEndOverlay();
       return;
-    }
-
-    const leftArea = ball.mesh.position.z < LANE_END_Z - 1.2 || absX > LANE_HALF_WIDTH + 1.4;
-    const shouldSettle = leftArea ||
-      (!airborne && pastPins && speed < 0.25) ||
-      (!airborne && speed < 0.22 && session.rollingTimer > 1.4) ||
-      (!airborne && session.rollingTimer > MAX_ROLL_TIME) ||
-      session.rollingTimer > MAX_ROLL_TIME + 2.4;
-
-    if (shouldSettle) {
-      session.gameState = GAME_STATE.SETTLING;
-      session.settleTimer = 0;
-      ball.velocity.multiplyScalar(0.8);
     }
   }
 
@@ -177,12 +151,10 @@ function stepPhysics(dt) {
   if (session.gameState === GAME_STATE.ROLLING) {
     integrateBall(dt);
     integratePins(dt);
-    if (!session.inGutter) {
-      solveBallWallCollision();
-      solveBallPinCollisions();
-      solvePinPinCollisions();
-      markKnockedPins();
-    }
+    solveBallWallCollision();
+    solveBallPinCollisions();
+    solvePinPinCollisions();
+    markKnockedPins();
     checkThrowLifecycle(dt);
   }
 
