@@ -57,16 +57,37 @@ export function resolveSphereContact(
     // ── Vertical Y-impulse cap ──────────────────────────────────────────────
     // Prevent exaggerated upward pop-ups by limiting how much of the impulse
     // is allowed to act along the Y-axis.  The horizontal components are left
-    // untouched so lateral pin scatter still looks realistic.
+    // as close to their original direction as possible so lateral pin
+    // scatter still looks realistic.
     // The cap is derived from the impulse magnitude: the Y component of the
     // collision normal is scaled back to at most 30 % of the total impulse.
     // This reflects the weight/inertia of a real bowling pin (1.5 kg) that
     // won't fly vertically like a feather when struck.
+    //
+    // NOTE: a naive implementation that clamps _n.y and then calls
+    // normalize() on the whole vector re-inflates the Y component right back
+    // out of the cap whenever the horizontal (x/z) part is small — exactly
+    // the near-vertical-normal case this cap exists to constrain (e.g.
+    // clamping y from 0.99 to 0.30 and renormalizing pulls y back up toward
+    // ~0.95). Instead we clamp y directly and rescale only the horizontal
+    // part so the vector stays unit length with y truly bounded.
     const Y_NORMAL_CAP = 0.30;
     const cappedN = _n.clone();
     if (Math.abs(cappedN.y) > Y_NORMAL_CAP) {
+      const targetHorizLen = Math.sqrt(Math.max(0, 1 - Y_NORMAL_CAP * Y_NORMAL_CAP));
+      const horizLenSq = cappedN.x * cappedN.x + cappedN.z * cappedN.z;
+      if (horizLenSq > 1e-8) {
+        const scale = targetHorizLen / Math.sqrt(horizLenSq);
+        cappedN.x *= scale;
+        cappedN.z *= scale;
+      } else {
+        // Normal is (almost) perfectly vertical — there is no horizontal
+        // direction to preserve, so invent one rather than leaving the
+        // vector unnormalized.
+        cappedN.x = targetHorizLen;
+        cappedN.z = 0;
+      }
       cappedN.y = Math.sign(cappedN.y) * Y_NORMAL_CAP;
-      cappedN.normalize();
     }
 
     _imp.copy(cappedN).multiplyScalar(jNormal);

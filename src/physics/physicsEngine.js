@@ -97,8 +97,22 @@ export function integratePins(dt) {
     }
     pin.angularVelocity.multiplyScalar(angularDecay);
 
+    // ── Ground contact height (capsule approximation) ────────────────────────
+    // The pin is modelled as a capsule: a cylinder of half-length
+    // PIN_HALF_SEGMENT capped by hemispheres of radius PIN_CAP_RADIUS.
+    // When the capsule's local "up" axis is tilted by angle θ from world-up
+    // (cosθ = _up.y), the lowest point on the capsule sits a distance
+    //   PIN_HALF_SEGMENT * |cosθ| + PIN_CAP_RADIUS
+    // below the pin's center — the half-length term shrinks toward 0 as the
+    // pin tips over, but the cap radius term is constant (a hemisphere
+    // contributes the same ground clearance no matter how the capsule is
+    // oriented). The two terms must be ADDED, not summed-then-scaled by
+    // |cosθ|: the previous formula, (PIN_CAP_RADIUS + PIN_HALF_SEGMENT) *
+    // |cosθ|, collapsed to 0 as a pin fell flat (θ → 90°), which sank
+    // knocked-down pins visibly into the lane/floor instead of letting them
+    // rest on their side at height ≈ PIN_CAP_RADIUS.
     _up.set(0, 1, 0).applyQuaternion(pin.mesh.quaternion);
-    const bottomHeight = (PIN_CAP_RADIUS + PIN_HALF_SEGMENT) * Math.abs(_up.y);
+    const bottomHeight = PIN_HALF_SEGMENT * Math.abs(_up.y) + PIN_CAP_RADIUS;
 
     if (pin.mesh.position.y < bottomHeight) {
       pin.mesh.position.y = bottomHeight;
