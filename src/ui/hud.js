@@ -35,10 +35,6 @@ export const hud = {
   sparesCount:       document.querySelector("#spares-count"),
   roundLog:          document.querySelector("#round-log"),
   stats: {
-    state:           document.querySelector("#stat-state"),
-    launchMode:      document.querySelector("#stat-launch-mode"),
-    surface:         document.querySelector("#stat-surface"),
-    ballType:        document.querySelector("#stat-ball-type"),
     dt:              document.querySelector("#stat-dt"),
     speed:           document.querySelector("#stat-speed"),
     horizontalSpeed: document.querySelector("#stat-horizontal-speed"),
@@ -108,10 +104,6 @@ export function updatePhysicsSidebar(dt) {
   const airDragForce  = config.airDragCoeff * speed * speed;
 
   const s = hud.stats;
-  s.state.textContent           = session.gameState;
-  s.launchMode.textContent      = config.launchMode.label;
-  s.surface.textContent         = config.surfaceType.label;
-  s.ballType.textContent        = config.ballType.label;
   s.dt.textContent              = `${(dt * 1000).toFixed(2)} ms`;
   s.speed.textContent           = `${speed.toFixed(2)} m/s`;
   s.horizontalSpeed.textContent = `${horizontalSpeed.toFixed(2)} m/s`;
