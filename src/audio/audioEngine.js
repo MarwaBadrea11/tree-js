@@ -88,11 +88,13 @@ export function ensureAudioReady() {
     audioState.initialized       = true;
   }
 
-  if (audioState.context.state === "suspended") {
-    audioState.context.resume();
+  if (audioState.context && audioState.context.state === "suspended") {
+    audioState.context.resume().catch(() => {
+      // Silently catch resume errors - will retry on next user interaction
+    });
   }
 
-  return true;
+  return audioState.initialized && audioState.context.state === "running";
 }
 
 // ── Low-level tone emitter ─────────────────────────────────────────────────────
@@ -137,7 +139,7 @@ export function playTone(targetGain, {
  * BPM = 104, subdivided to 16th-note steps.
  */
 export function scheduleMusic() {
-  if (!audioState.initialized || !audioState.enabledMusic) return;
+  if (!audioState.initialized || !audioState.enabledMusic || !audioState.context || audioState.context.state !== "running") return;
 
   const ctx          = audioState.context;
   const stepDuration = 60 / 104 / 4;   // 16th note at 104 BPM
@@ -183,7 +185,7 @@ export function scheduleMusic() {
  * based on ball speed and ground contact. Called each render frame.
  */
 export function updateRollingSfx() {
-  if (!audioState.initialized || !audioState.rollingNoiseGain || !audioState.rollingFilter) return;
+  if (!audioState.initialized || !audioState.rollingNoiseGain || !audioState.rollingFilter || !audioState.context || audioState.context.state !== "running") return;
 
   const speed    = Math.hypot(ball.velocity.x, ball.velocity.z);
   const onGround = ball.mesh.position.y <= BALL_RADIUS + 0.02;

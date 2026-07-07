@@ -28,15 +28,14 @@ body {
   overflow: hidden;
   font-family: "Outfit", sans-serif;
   color: var(--text-main);
-  background:
-    radial-gradient(circle at 12% 15%, rgba(255, 171, 90, 0.28), transparent 38%),
-    radial-gradient(circle at 90% 85%, rgba(39, 194, 160, 0.25), transparent 40%),
-    linear-gradient(165deg, var(--bg-1), var(--bg-2) 40%, var(--bg-3));
+  background: radial-gradient(circle at 12% 15%, rgba(255, 171, 90, 0.28), transparent 38%),
+              radial-gradient(circle at 90% 85%, rgba(39, 194, 160, 0.25), transparent 40%),
+              linear-gradient(165deg, var(--bg-1), var(--bg-2) 40%, var(--bg-3));
 }
 
 #game-root {
   position: fixed;
-  inset:0;
+  inset: 0;
 }
 
 #game-root canvas {
@@ -62,9 +61,7 @@ body {
   border: 1px solid var(--panel-border);
   border-radius: 18px;
   padding: 14px 16px;
-  background:
-    linear-gradient(140deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)),
-    var(--panel);
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)), var(--panel);
   backdrop-filter: blur(10px);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
 }
@@ -145,16 +142,14 @@ body {
   border-radius: 999px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  background:
-    linear-gradient(90deg, rgba(255, 141, 58, 0.12), rgba(60, 196, 164, 0.18));
+  background: linear-gradient(90deg, rgba(255, 141, 58, 0.12), rgba(60, 196, 164, 0.18));
 }
 
 #power-fill {
   width: 0%;
   height: 100%;
   border-radius: 999px;
-  background:
-    linear-gradient(90deg, var(--accent-a), var(--accent-b) 48%, var(--accent-c));
+  background: linear-gradient(90deg, var(--accent-a), var(--accent-b) 48%, var(--accent-c));
   transition: width 70ms linear;
 }
 
@@ -309,10 +304,15 @@ body {
   grid-template-columns: 1fr 1fr auto;
   align-items: center;
   gap: 12px;
+  background: var(--panel);
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(10px);
 }
 
 #mobile-controls h3 {
-  margin: 0;
+  margin: 0 0 5px 0;
   font-family: "Chakra Petch", sans-serif;
   font-size: 0.88rem;
   grid-column: 1 / -1;
@@ -340,7 +340,6 @@ body {
     grid-template-columns: 1fr;
     justify-content: start;
   }
-
   #right-panel {
     max-width: 420px;
   }
@@ -350,24 +349,27 @@ body {
   #left-panel {
     max-width: none;
   }
-
   #right-panel {
     display: none;
   }
-
   #mobile-controls {
     grid-template-columns: 1fr;
-    gap: 6px;
+    gap: 10px;
+    padding: 12px;
   }
-
   #mobile-controls h3 {
     grid-column: 1;
   }
+  #mobile-controls .ctrl-group {
+    margin-top: 8px;
+  }
+  #roll-btn {
+    margin-top: 10px;
+  }
 }
 
-/* ── Game-end overlay ──────────────────────────────────────────────────────── */
 #game-end-overlay {
-  display: none;                   /* toggled to flex by JS */
+  display: none;
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -377,7 +379,6 @@ body {
   justify-content: center;
   align-items: center;
   pointer-events: none;
-  /* fade-in animation */
   animation: gameEndFadeIn 0.35s ease forwards;
 }
 
@@ -394,9 +395,7 @@ body {
   border-radius: 1.2rem;
   background: rgba(10, 18, 26, 0.88);
   border: 1px solid rgba(255, 0, 85, 0.35);
-  box-shadow:
-    0 0 60px rgba(255, 0, 85, 0.25),
-    0 24px 48px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 60px rgba(255, 0, 85, 0.25), 0 24px 48px rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(16px);
 }
 
@@ -408,9 +407,7 @@ body {
   color: #ff0055;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  text-shadow:
-    0 0 20px rgba(255, 0, 85, 0.7),
-    0 0 60px rgba(255, 0, 85, 0.35);
+  text-shadow: 0 0 20px rgba(255, 0, 85, 0.7), 0 0 60px rgba(255, 0, 85, 0.35);
 }
 
 #game-end-sub {
@@ -424,70 +421,6 @@ body {
 
 @keyframes gameEndFadeIn {
   from { opacity: 0; transform: scale(0.92); }
-  to   { opacity: 1; transform: scale(1); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-/* ── Power Indicator – fixed right edge ───────────────────────────────────── */
-#power-indicator {
-  position: fixed;
-  right: 20px;
-  bottom: 50%;
-  transform: translateY(50%);
-  width: 64px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  pointer-events: none;
-  z-index: 100;
-}
-
-#power-track {
-  position: relative;
-  width: 14px;
-  height: 180px;
-  border-radius: 999px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background:
-    linear-gradient(180deg, rgba(60, 196, 164, 0.18), rgba(255, 141, 58, 0.12));
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
-}
-
-#power-fill {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 0%;
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, var(--accent-c), var(--accent-b) 48%, var(--accent-a));
-  transition: height 70ms linear;
-}
-
-#power-label-row {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  width: 100%;
-}
-
-#power-label {
-  font-family: "Chakra Petch", sans-serif;
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  text-align: right;
-  color: var(--text-dim);
-}
-
-#power-text {
-  font-family: "Chakra Petch", sans-serif;
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-align: right;
-  color: var(--text-main);
-}

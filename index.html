@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div id="app">
@@ -27,7 +27,6 @@
       <div id="hud">
         <section id="left-panel" class="panel">
           <h1>Bowling Lab</h1>
-          <p class="subtitle">Three.js + Custom Physics (No physics engine)</p>
           <p id="status-text">Aim with A/D, hold Space, release to roll.</p>
 
           <div id="physics-config">
@@ -45,7 +44,6 @@
               <select id="surface-type-select">
                 <option value="normal" selected>Normal Ground</option>
                 <option value="water">Water Ground</option>
-                <option value="dense-air">Strong Air Resistance</option>
               </select>
             </label>
 
@@ -68,7 +66,6 @@
             <div><strong>R</strong><span>Restart full game</span></div>
           </div>
 
-          <p id="keyboard-note">On mobile/tablet, use the sliders and the Roll button below.</p>
           <div id="audio-controls">
             <button id="music-toggle-btn" type="button">Music: On</button>
             <button id="sfx-toggle-btn" type="button">Voice/SFX: On</button>
@@ -98,7 +95,6 @@
           <h2>Round Tracker</h2>
           <div id="round-summary">
             <div><span>Round</span><strong id="round-number">1 / 10</strong></div>
-            <div><span>Throw</span><strong id="throw-number">1</strong></div>
             <div><span>Total Pinfall</span><strong id="total-pinfall">0</strong></div>
             <div><span>Strikes</span><strong id="strikes-count">0</strong></div>
             <div><span>Spares</span><strong id="spares-count">0</strong></div>
@@ -122,17 +118,6 @@
       </section>
     </div>
 
-      <!-- Standalone power indicator – fixed to right edge -->
-      <div id="power-indicator">
-        <div id="power-track">
-          <div id="power-fill"></div>
-        </div>
-        <div id="power-label-row">
-          <span id="power-label">POWER</span>
-          <span id="power-text">0%</span>
-        </div>
-      </div>
-
-    <script type="module" src="/main.js"></script>
+    <script type="module" src="main.js"></script>
   </body>
 </html>

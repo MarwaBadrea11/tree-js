@@ -22,14 +22,11 @@ export const hud = {
   ballTypeSelect:    document.querySelector("#ball-type-select"),
   musicToggleBtn:    document.querySelector("#music-toggle-btn"),
   sfxToggleBtn:      document.querySelector("#sfx-toggle-btn"),
-  powerFill:         document.querySelector("#power-fill"),
-  powerText:         document.querySelector("#power-text"),
   resetBtn:          document.querySelector("#reset-btn"),
   aimSlider:         document.querySelector("#aim-slider"),
   powerSlider:       document.querySelector("#power-slider"),
   rollBtn:           document.querySelector("#roll-btn"),
   roundNumber:       document.querySelector("#round-number"),
-  throwNumber:       document.querySelector("#throw-number"),
   totalPinfall:      document.querySelector("#total-pinfall"),
   strikesCount:      document.querySelector("#strikes-count"),
   sparesCount:       document.querySelector("#spares-count"),
@@ -52,18 +49,12 @@ export const hud = {
   },
 };
 
-// ── Power bar ─────────────────────────────────────────────────────────────────
-export function updatePowerUI() {
-  const pct = Math.round(aim.chargePower * 100);
-  hud.powerFill.style.height = `${pct}%`;
-  hud.powerText.textContent = `${pct}%`;
-}
+
 
 // ── Round summary ──────────────────────────────────────────────────────────────
 export function updateRoundSummary() {
-  const shown = Math.min(session.round, 10);
-  hud.roundNumber.textContent  = `${shown} / 10`;
-  hud.throwNumber.textContent  = session.gameState === "gameover" ? "-" : `${session.throwInRound}`;
+  const shown = Math.min(session.round, 5);
+  hud.roundNumber.textContent  = `${shown} / 5`;
   hud.totalPinfall.textContent = `${session.totalPinfall}`;
   hud.strikesCount.textContent = `${session.strikes}`;
   hud.sparesCount.textContent  = `${session.spares}`;

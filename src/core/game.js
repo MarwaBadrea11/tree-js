@@ -4,15 +4,6 @@
  * High-level game-flow logic: launching, finishing throws, round management,
  * and full-game reset. Coordinates between state, entities, UI, and audio
  * without containing any raw physics maths.
- *
- * Circular-dependency note:
- *   game.js  →  audio, state, constants, entities
- *   hud.js   →  game.js (for getActivePhysicsConfig, countStandingPins)
- *   input.js →  game.js (for launchBall, resetGame, ...)
- *
- *   To avoid a cycle, game.js does NOT import hud.js.
- *   Instead, UI update callbacks (updateRoundLogUI, updateRoundSummary,
- *   updatePowerUI) are registered from main.js via registerHudCallbacks().
  */
 
 import * as THREE from "three";
@@ -50,16 +41,14 @@ export function clamp(v, lo, hi) {
 // ── HUD callback registry  (populated by main.js to break the circular dep) ──
 let _cbUpdateRoundLog   = () => {};
 let _cbUpdateRoundSum   = () => {};
-let _cbUpdatePowerUI    = () => {};
 
 /**
  * Call once from main.js after all modules are loaded.
- * @param {{ roundLog: Function, roundSummary: Function, powerUI: Function }} cbs
+ * @param {{ roundLog: Function, roundSummary: Function }} cbs
  */
 export function registerHudCallbacks(cbs) {
   _cbUpdateRoundLog = cbs.roundLog    ?? _cbUpdateRoundLog;
   _cbUpdateRoundSum = cbs.roundSummary ?? _cbUpdateRoundSum;
-  _cbUpdatePowerUI  = cbs.powerUI     ?? _cbUpdatePowerUI;
 }
 
 // ── Physics-config aggregator ─────────────────────────────────────────────────
@@ -133,6 +122,7 @@ function clearKnockedPins() {
     if (pin.knocked) {
       pin.active = false;
       pin.mesh.visible = false;
+      pin.mesh.position.set(0, -10, 0);
       pin.velocity.set(0, 0, 0);
       pin.angularVelocity.set(0, 0, 0);
       continue;
@@ -142,13 +132,6 @@ function clearKnockedPins() {
     pin.angularVelocity.multiplyScalar(0.3);
 
     _upVec.set(0, 1, 0).applyQuaternion(pin.mesh.quaternion);
-    // Restore y-position based on tilt. The pin is a capsule (half-length
-    // PIN_HALF_SEGMENT, cap radius PIN_CAP_RADIUS): the half-length term
-    // shrinks with tilt, but the cap radius is constant ground clearance
-    // regardless of orientation, so it must be ADDED, not scaled by tilt too
-    // (the old (r + L) * |cosθ| formula collapsed to 0 for a fully fallen
-    // pin, sinking it into the lane surface). Kept in sync with the same
-    // fix in physicsEngine.js's integratePins().
     pin.mesh.position.y = PIN_HALF_SEGMENT * Math.abs(_upVec.y) + PIN_CAP_RADIUS;
 
     if (pin.mesh.quaternion.angleTo(_identQuat) < THREE.MathUtils.degToRad(8)) {
@@ -160,26 +143,19 @@ function clearKnockedPins() {
 // ── Ball reset ────────────────────────────────────────────────────────────────
 /**
  * @param {boolean} [keepOverlay=false]
- *   Pass true when calling from a gutter-end or ball-past-pins sequence so the
- *   "the game end" overlay is NOT immediately dismissed.  The overlay's own
- *   auto-hide timer will remove it after its full display duration.
  */
 export function resetBallForAim(keepOverlay = false) {
-  // Snap position and rotation back to the approach area
   ball.mesh.position.set(BALL_START.x, BALL_START.y, BALL_START.z);
   ball.mesh.quaternion.identity();
-  // Hard-zero all motion so there is no residual velocity from the previous throw
   ball.velocity.set(0, 0, 0);
   session.launchSpeed    = 0;
   session.rollingTimer   = 0;
   session.settleTimer    = 0;
-  session.ballPassedPins = false;  // reset one-shot flag for next throw
-  session.inGutter       = false;  // ball is back on the lane
+  session.ballPassedPins    = false;  
+  session.inGutter          = false;  
+  session.ballContactedPins = false;  
   keys.space             = false;
 
-  // Only dismiss the overlay immediately when starting a fresh aim cycle.
-  // When called after a gutter/past-pins sequence the overlay should stay
-  // visible for its full auto-hide duration so the player can read it.
   if (!keepOverlay) {
     const overlay = document.getElementById("game-end-overlay");
     if (overlay) {
@@ -188,6 +164,7 @@ export function resetBallForAim(keepOverlay = false) {
     }
   }
 
+  // إذا انتهت اللعبة تماماً لا نرجع لحالة الـ Aiming تلقائياً
   if (session.gameState !== GAME_STATE.GAMEOVER) {
     session.gameState = GAME_STATE.AIMING;
   }
@@ -230,30 +207,18 @@ export function applySelectionSettings(launchModeSelectEl, surfaceSelectEl, ball
   applyBallType(ballSelectEl.value);
 }
 
-// ── Ball-past-pins notification (one-shot per throw) ─────────────────────────
-/**
- * Called from main.js checkThrowLifecycle when the ball crosses PIN_BACK_Z.
- * Guards itself with session.ballPassedPins so it fires exactly once per throw.
- *
- * Shows the #game-end-overlay defined in index.html.
- * The overlay is a separate DOM element – finishThrow()'s setStatus() calls
- * cannot touch it, so the message is guaranteed to appear.
- */
+// ── Ball-past-pins notification ──────────────────────────────────────────────
 export function notifyBallPastPins() {
   if (session.ballPassedPins) return;
   session.ballPassedPins = true;
 
-  // Show the full-screen overlay (toggled via CSS class).
   const overlay = document.getElementById("game-end-overlay");
   if (overlay) {
-    // Re-trigger the CSS animation on repeat throws.
     overlay.style.animation = "none";
-    // Force reflow so the browser re-registers the animation.
     void overlay.offsetWidth;
     overlay.style.animation = "";
     overlay.classList.add("visible");
 
-    // Auto-hide after 2.5 s so it clears before the next throw UI appears.
     clearTimeout(overlay._hideTimer);
     overlay._hideTimer = setTimeout(() => {
       overlay.classList.remove("visible");
@@ -266,7 +231,6 @@ export function notifyBallPastPins() {
 // ── Game-over ─────────────────────────────────────────────────────────────────
 let _statusEl = null;
 
-/** Register the status DOM element (called from main.js). */
 export function registerStatusElement(el) {
   _statusEl = el;
 }
@@ -279,8 +243,6 @@ function endGame() {
   session.gameState = GAME_STATE.GAMEOVER;
   ball.velocity.set(0, 0, 0);
 
-  // Snap ball back to the approach area immediately so it doesn't sit
-  // frozen at the pin deck while the Game Over screen is visible.
   ball.mesh.position.set(BALL_START.x, BALL_START.y, BALL_START.z);
   ball.mesh.quaternion.identity();
 
@@ -300,68 +262,57 @@ function endGame() {
   speakAnnouncement("Game over");
 }
 
-// ── Gutter throw (called from main.js when ball leaves the lane laterally) ────
-/**
- * Handles the state transition for a gutter ball — zero pins are added for
- * this throw, then we advance to throw 2 (or the next frame if it was throw 2).
- *
- * The overlay and ball freeze are already handled in main.js before this is
- * called, so this function only drives game-flow.
- */
+export function triggerGameOver() {
+  if (session.gameState === GAME_STATE.GAMEOVER) return;
+  endGame();
+}
+
+// ── Gutter throw ──────────────────────────────────────────────────────────────
 export function gutterThrow() {
   if (
     session.gameState !== GAME_STATE.SETTLING &&
     session.gameState !== GAME_STATE.ROLLING
   ) return;
 
-  // A gutter ball scores 0 knocked pins for this throw.
   session.lastThrowPins = 0;
 
   if (session.throwInRound === 1) {
-    // First throw gutter → give the player throw 2 with all pins still up.
     session.firstThrowPins = 0;
     session.throwInRound   = 2;
-    clearKnockedPins(); // standing pins stay, knocked ones cleared
-    // resetBallForAim() is called by main.js immediately after gutterThrow().
+    clearKnockedPins();
     setStatus(`Gutter! Throw 2. ${countStandingPins()} pins still standing.`);
     playRoundResultSfx(false, false, 0);
+    
+    // Update UI immediately after state change
     _cbUpdateRoundLog();
     _cbUpdateRoundSum();
   } else {
-    // Second throw gutter → record frame (first + 0) and advance round.
     const first      = session.firstThrowPins ?? 0;
-    const frameTotal = first + 0;
-
-    if (frameTotal === 10) {
-      // Spare via first throw + gutter (unlikely but possible if 10-pin was left)
-      session.spares++;
-      roundLogEntries.push(`Round ${session.round}: ${first} /`);
-    } else {
-      roundLogEntries.push(`Round ${session.round}: ${first}, 0`);
-    }
+    roundLogEntries.push(`Round ${session.round}: ${first}, 0`);
 
     session.round++;
     session.throwInRound   = 1;
     session.firstThrowPins = null;
 
-    if (session.round <= 10) {
+    if (session.round <= 5) {
       setupFreshRack();
-      // resetBallForAim() is called by main.js immediately after gutterThrow().
       setStatus(`Gutter! Round ${session.round}. Aim with A/D, then roll.`);
+      playRoundResultSfx(false, false, 0);
+      
+      // Update UI immediately after state change
+      _cbUpdateRoundLog();
+      _cbUpdateRoundSum();
     } else {
+      // Update UI before ending game
       _cbUpdateRoundLog();
       _cbUpdateRoundSum();
       endGame();
       return;
     }
-
-    playRoundResultSfx(false, false, 0);
-    _cbUpdateRoundLog();
-    _cbUpdateRoundSum();
   }
 }
 
-// ── Finish throw (called after pins settle) ───────────────────────────────────
+// ── Finish throw (تعديل منطق نهاية الرمية والـ الجولات) ───────────────────────
 export function finishThrow() {
   const standingAfter   = countStandingPins();
   session.lastThrowPins = Math.max(0, session.standingBeforeThrow - standingAfter);
@@ -374,35 +325,51 @@ export function finishThrow() {
     session.firstThrowPins = session.lastThrowPins;
 
     if (standingAfter === 0) {
+      // إطلاق ميزة الـ Strike!
       isStrike = true;
       session.strikes++;
       roundLogEntries.push(`Round ${session.round}: X`);
+      
       session.round++;
       session.throwInRound   = 1;
       session.firstThrowPins = null;
 
-      if (session.round <= 10) {
+      if (session.round <= 5) {
         setupFreshRack();
-        resetBallForAim(true);  // overlay may still be showing from notifyBallPastPins
+        resetBallForAim(true);
         setStatus(`Strike! Round ${session.round}. Aim your next throw.`);
+        
+        // Update UI immediately after state change
+        playRoundResultSfx(isStrike, isSpare, session.lastThrowPins);
+        _cbUpdateRoundLog();
+        _cbUpdateRoundSum();
       } else {
+        // Update UI before ending game
+        playRoundResultSfx(isStrike, isSpare, session.lastThrowPins);
         _cbUpdateRoundLog();
         _cbUpdateRoundSum();
         endGame();
         return;
       }
     } else {
+      // الانتقال للرمية الثانية بنفس الجولة
       session.throwInRound = 2;
       clearKnockedPins();
-      resetBallForAim(true);  // overlay may still be showing from notifyBallPastPins
+      resetBallForAim(true);
       setStatus(`Throw 2. ${standingAfter} pins still standing.`);
+      
+      // Update UI immediately after state change
+      playRoundResultSfx(isStrike, isSpare, session.lastThrowPins);
+      _cbUpdateRoundLog();
+      _cbUpdateRoundSum();
     }
   } else {
+    // حساب الرمية الثانية
     const second     = session.lastThrowPins;
     const first      = session.firstThrowPins ?? 0;
     const frameTotal = first + second;
 
-    if (frameTotal === 10) {
+    if (frameTotal >= 10) { // الـ Spare
       isSpare = true;
       session.spares++;
       roundLogEntries.push(`Round ${session.round}: ${first} /`);
@@ -414,21 +381,24 @@ export function finishThrow() {
     session.throwInRound   = 1;
     session.firstThrowPins = null;
 
-    if (session.round <= 10) {
+    if (session.round <= 5) {
       setupFreshRack();
-      resetBallForAim(true);  // overlay may still be showing from notifyBallPastPins
+      resetBallForAim(true);
       setStatus(`Round ${session.round}. Aim with A/D, then roll.`);
+      
+      // Update UI immediately after state change
+      playRoundResultSfx(isStrike, isSpare, session.lastThrowPins);
+      _cbUpdateRoundLog();
+      _cbUpdateRoundSum();
     } else {
+      // Update UI before ending game
+      playRoundResultSfx(isStrike, isSpare, session.lastThrowPins);
       _cbUpdateRoundLog();
       _cbUpdateRoundSum();
       endGame();
       return;
     }
   }
-
-  playRoundResultSfx(isStrike, isSpare, session.lastThrowPins);
-  _cbUpdateRoundLog();
-  _cbUpdateRoundSum();
 }
 
 // ── Launch ball ───────────────────────────────────────────────────────────────
@@ -445,7 +415,6 @@ export function launchBall(powerOverride = null) {
 
   aim.chargePower = power;
 
-  // ── Compute launch speed from power curve ──────────────────────────────────
   const curvedPower = Math.pow(power, profile.powerExponent);
   let ls =
     profile.minSpeed +
@@ -454,11 +423,6 @@ export function launchBall(powerOverride = null) {
   ls *= config.launchSpeedMultiplier;
   session.launchSpeed = ls;
 
-  // ── Decompose velocity (Newton 2nd law initial conditions) ─────────────────
-  // θ  = launch elevation angle
-  // vx =  v * cos(θ) * sin(aimAngle)
-  // vz = -v * cos(θ) * cos(aimAngle)   [negative → toward pins in −Z]
-  // vy =  v * sin(θ)
   const launchAngle      = THREE.MathUtils.degToRad(profile.launchAngleDeg);
   const horizontalFactor = Math.cos(launchAngle);
   const verticalSpeed    = Math.sin(launchAngle) * ls;
@@ -466,7 +430,7 @@ export function launchBall(powerOverride = null) {
   ball.velocity.set(
     Math.sin(aim.angle) * ls * horizontalFactor,
     verticalSpeed,
-    -Math.cos(aim.angle) * ls * horizontalFactor   // always −Z
+    -Math.cos(aim.angle) * ls * horizontalFactor   
   );
   ball.mesh.position.y = BALL_RADIUS + profile.spawnHeight;
 
@@ -476,7 +440,7 @@ export function launchBall(powerOverride = null) {
   session.gameState           = GAME_STATE.ROLLING;
 
   playLaunchSfx();
-  setStatus(`${profile.label} fired. Watch free-fall, rebound, and collision response.`);
+  setStatus(`${profile.label} fired.`);
 }
 
 // ── Aim & charge step ─────────────────────────────────────────────────────────
@@ -486,7 +450,6 @@ export function updateAimAndCharge(dt) {
   const turnDir = (keys.left ? 1 : 0) - (keys.right ? 1 : 0);
   if (turnDir !== 0) {
     aim.angle = clamp(aim.angle + turnDir * AIM_SPEED * dt, -MAX_AIM_ANGLE, MAX_AIM_ANGLE);
-    // Sync slider – grab element via registered reference
     if (_aimSliderEl) _aimSliderEl.value = `${Math.round(THREE.MathUtils.radToDeg(aim.angle))}`;
   }
 
@@ -501,7 +464,7 @@ export function updateAimAndCharge(dt) {
   }
 }
 
-// DOM slider references (registered from main.js to avoid circular imports)
+// DOM slider references
 let _aimSliderEl   = null;
 let _powerSliderEl = null;
 
@@ -525,6 +488,7 @@ export function resetGame() {
   session.rollingTimer         = 0;
   session.settleTimer          = 0;
   session.inGutter             = false;
+  session.ballContactedPins    = false;
   aim.angle      = 0;
   aim.chargePower = 0;
 
@@ -533,7 +497,6 @@ export function resetGame() {
   if (_aimSliderEl)   _aimSliderEl.value   = "0";
   if (_powerSliderEl) _powerSliderEl.value = "0";
 
-  // Re-apply dropdown selections (elements registered below)
   if (_launchSelectEl && _surfaceSelectEl && _ballSelectEl) {
     applySelectionSettings(_launchSelectEl, _surfaceSelectEl, _ballSelectEl);
   }
@@ -561,10 +524,8 @@ export function resetGame() {
 
   _cbUpdateRoundLog();
   _cbUpdateRoundSum();
-  _cbUpdatePowerUI();
 }
 
-// Dropdown element references
 let _launchSelectEl  = null;
 let _surfaceSelectEl = null;
 let _ballSelectEl    = null;

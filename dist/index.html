@@ -10,17 +10,24 @@
       href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="/assets/index-CAwsiVJ8.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CxWPabpA.css">
+    <script type="module" crossorigin src="/assets/index-BL7Srk_S.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DqZlIEyk.css">
   </head>
   <body>
     <div id="app">
       <div id="game-root"></div>
 
+      <!-- Game-end overlay: shown when ball passes the pin deck -->
+      <div id="game-end-overlay">
+        <div id="game-end-card">
+          <h1 id="game-end-title">the game end</h1>
+          <p id="game-end-sub">Ball passed the pin deck</p>
+        </div>
+      </div>
+
       <div id="hud">
         <section id="left-panel" class="panel">
           <h1>Bowling Lab</h1>
-          <p class="subtitle">Three.js + Custom Physics (No physics engine)</p>
           <p id="status-text">Aim with A/D, hold Space, release to roll.</p>
 
           <div id="physics-config">
@@ -38,7 +45,6 @@
               <select id="surface-type-select">
                 <option value="normal" selected>Normal Ground</option>
                 <option value="water">Water Ground</option>
-                <option value="dense-air">Strong Air Resistance</option>
               </select>
             </label>
 
@@ -52,15 +58,7 @@
             </label>
           </div>
 
-          <div class="meter-wrap">
-            <div class="meter-label">
-              <span>Roll Power</span>
-              <span id="power-text">0%</span>
-            </div>
-            <div class="meter-track">
-              <div id="power-fill"></div>
-            </div>
-          </div>
+
 
           <div id="help-grid">
             <div><strong>A / D</strong><span>Aim left or right</span></div>
@@ -69,7 +67,6 @@
             <div><strong>R</strong><span>Restart full game</span></div>
           </div>
 
-          <p id="keyboard-note">On mobile/tablet, use the sliders and the Roll button below.</p>
           <div id="audio-controls">
             <button id="music-toggle-btn" type="button">Music: On</button>
             <button id="sfx-toggle-btn" type="button">Voice/SFX: On</button>
@@ -80,10 +77,6 @@
         <aside id="right-panel" class="panel">
           <h2>Physics Sidebar</h2>
           <dl id="physics-list">
-            <div><dt>State</dt><dd id="stat-state">aiming</dd></div>
-            <div><dt>Launch Mode</dt><dd id="stat-launch-mode">normal</dd></div>
-            <div><dt>Surface</dt><dd id="stat-surface">normal</dd></div>
-            <div><dt>Ball Type</dt><dd id="stat-ball-type">normal</dd></div>
             <div><dt>Frame Time</dt><dd id="stat-dt">0.0 ms</dd></div>
             <div><dt>Ball Speed</dt><dd id="stat-speed">0.00 m/s</dd></div>
             <div><dt>Horizontal Speed</dt><dd id="stat-horizontal-speed">0.00 m/s</dd></div>
@@ -103,7 +96,6 @@
           <h2>Round Tracker</h2>
           <div id="round-summary">
             <div><span>Round</span><strong id="round-number">1 / 10</strong></div>
-            <div><span>Throw</span><strong id="throw-number">1</strong></div>
             <div><span>Total Pinfall</span><strong id="total-pinfall">0</strong></div>
             <div><span>Strikes</span><strong id="strikes-count">0</strong></div>
             <div><span>Spares</span><strong id="spares-count">0</strong></div>
@@ -115,12 +107,14 @@
 
       <section id="mobile-controls" class="panel">
         <h3>Touch Controls</h3>
-        <label for="aim-slider">Aim</label>
-        <input id="aim-slider" type="range" min="-20" max="20" value="0" step="1" />
-
-        <label for="power-slider">Power</label>
-        <input id="power-slider" type="range" min="0" max="100" value="0" step="1" />
-
+        <div class="ctrl-group">
+          <label for="aim-slider">Aim</label>
+          <input id="aim-slider" type="range" min="-20" max="20" value="0" step="1" />
+        </div>
+        <div class="ctrl-group">
+          <label for="power-slider">Power</label>
+          <input id="power-slider" type="range" min="0" max="100" value="0" step="1" />
+        </div>
         <button id="roll-btn" type="button">Roll Ball</button>
       </section>
     </div>

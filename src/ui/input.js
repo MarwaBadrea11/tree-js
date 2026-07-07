@@ -94,8 +94,8 @@ function onAimSliderInput() {
 function onPowerSliderInput() {
   if (!canAim()) return;
   aim.chargePower = clamp(Number(hud.powerSlider.value) / 100, 0, 1);
-  hud.powerFill.style.width = `${Math.round(aim.chargePower * 100)}%`;
-  hud.powerText.textContent = `${Math.round(aim.chargePower * 100)}%`;
+  if (hud.powerFill) hud.powerFill.style.width = `${Math.round(aim.chargePower * 100)}%`;
+  if (hud.powerText) hud.powerText.textContent = `${Math.round(aim.chargePower * 100)}%`;
 }
 
 function onRollBtnClick() {

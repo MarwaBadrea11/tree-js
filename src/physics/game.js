@@ -133,6 +133,7 @@ function clearKnockedPins() {
     if (pin.knocked) {
       pin.active = false;
       pin.mesh.visible = false;
+      pin.mesh.position.set(0, -10, 0);
       pin.velocity.set(0, 0, 0);
       pin.angularVelocity.set(0, 0, 0);
       continue;
@@ -142,13 +143,6 @@ function clearKnockedPins() {
     pin.angularVelocity.multiplyScalar(0.3);
 
     _upVec.set(0, 1, 0).applyQuaternion(pin.mesh.quaternion);
-    // Restore y-position based on tilt. The pin is a capsule (half-length
-    // PIN_HALF_SEGMENT, cap radius PIN_CAP_RADIUS): the half-length term
-    // shrinks with tilt, but the cap radius is constant ground clearance
-    // regardless of orientation, so it must be ADDED, not scaled by tilt too
-    // (the old (r + L) * |cosθ| formula collapsed to 0 for a fully fallen
-    // pin, sinking it into the lane surface). Kept in sync with the same
-    // fix in physicsEngine.js's integratePins().
     pin.mesh.position.y = PIN_HALF_SEGMENT * Math.abs(_upVec.y) + PIN_CAP_RADIUS;
 
     if (pin.mesh.quaternion.angleTo(_identQuat) < THREE.MathUtils.degToRad(8)) {
@@ -173,8 +167,9 @@ export function resetBallForAim(keepOverlay = false) {
   session.launchSpeed    = 0;
   session.rollingTimer   = 0;
   session.settleTimer    = 0;
-  session.ballPassedPins = false;  // reset one-shot flag for next throw
-  session.inGutter       = false;  // ball is back on the lane
+  session.ballPassedPins    = false;  // reset one-shot flag for next throw
+  session.inGutter          = false;  // ball is back on the lane
+  session.ballContactedPins = false;  // reset contact flag for next throw
   keys.space             = false;
 
   // Only dismiss the overlay immediately when starting a fresh aim cycle.
@@ -300,6 +295,15 @@ function endGame() {
   speakAnnouncement("Game over");
 }
 
+/**
+ * Public entry point that triggers the Game Over state.
+ * Called from main.js after the 5-second post-contact delay.
+ */
+export function triggerGameOver() {
+  if (session.gameState === GAME_STATE.GAMEOVER) return;
+  endGame();
+}
+
 // ── Gutter throw (called from main.js when ball leaves the lane laterally) ────
 /**
  * Handles the state transition for a gutter ball — zero pins are added for
@@ -344,7 +348,7 @@ export function gutterThrow() {
     session.throwInRound   = 1;
     session.firstThrowPins = null;
 
-    if (session.round <= 10) {
+    if (session.round <= 5) {
       setupFreshRack();
       // resetBallForAim() is called by main.js immediately after gutterThrow().
       setStatus(`Gutter! Round ${session.round}. Aim with A/D, then roll.`);
@@ -381,7 +385,7 @@ export function finishThrow() {
       session.throwInRound   = 1;
       session.firstThrowPins = null;
 
-      if (session.round <= 10) {
+      if (session.round <= 5) {
         setupFreshRack();
         resetBallForAim(true);  // overlay may still be showing from notifyBallPastPins
         setStatus(`Strike! Round ${session.round}. Aim your next throw.`);
@@ -414,7 +418,7 @@ export function finishThrow() {
     session.throwInRound   = 1;
     session.firstThrowPins = null;
 
-    if (session.round <= 10) {
+    if (session.round <= 5) {
       setupFreshRack();
       resetBallForAim(true);  // overlay may still be showing from notifyBallPastPins
       setStatus(`Round ${session.round}. Aim with A/D, then roll.`);
@@ -525,6 +529,7 @@ export function resetGame() {
   session.rollingTimer         = 0;
   session.settleTimer          = 0;
   session.inGutter             = false;
+  session.ballContactedPins    = false;
   aim.angle      = 0;
   aim.chargePower = 0;
 

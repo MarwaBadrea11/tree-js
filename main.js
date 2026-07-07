@@ -21,6 +21,7 @@ import {
   registerStatusElement,
   registerSliderElements,
   registerDropdownElements,
+  triggerGameOver,
 } from "./src/core/game.js";
 import { createLane }        from "./src/entities/Lane.js";
 import { ball }              from "./src/entities/Ball.js";   
@@ -38,7 +39,6 @@ import {
 } from "./src/physics/collisions.js";
 import {
   hud,
-  updatePowerUI,
   updateRoundSummary,
   updateRoundLogUI,
   updatePhysicsSidebar,
@@ -62,7 +62,6 @@ registerDropdownElements(hud.launchModeSelect, hud.surfaceTypeSelect, hud.ballTy
 registerHudCallbacks({
   roundLog: () => updateRoundLogUI(roundLogEntries),
   roundSummary: () => updateRoundSummary(),
-  powerUI: () => updatePowerUI(),
 });
 
 createLane();
@@ -70,8 +69,8 @@ createPins();
 setupInput();
 
 function resumeAudioContext() {
-  if (audioState && audioState.ctx && audioState.ctx.state === "suspended") {
-    audioState.ctx.resume().then(() => {
+  if (audioState && audioState.context && audioState.context.state === "suspended") {
+    audioState.context.resume().then(() => {
       window.removeEventListener("click", resumeAudioContext);
       window.removeEventListener("keydown", resumeAudioContext);
     });
@@ -109,38 +108,44 @@ function checkThrowLifecycle(dt) {
     const isStationary = speed < 0.03; 
     const isExpired = session.rollingTimer > MAX_ROLL_TIME + 2.0;
 
+    // حالة وقوف الكرة تماماً قبل الوصول (تعتبر رمية ضائعة أو Gutter)
     if (isStationary || isExpired) {
       _gutterPending = true;
       ball.velocity.set(0, 0, 0);
       session.gameState = GAME_STATE.SETTLING;
       session.settleTimer = 0;
-      
-      showGameEndOverlay();
-
-      setTimeout(() => {
-        _gutterPending = false;
-        session.inGutter = false;
-        gutterThrow();
-        resetBallForAim(true);
-      }, 1500);
       return;
     }
 
+    // عندما تتجاوز الكرة خط الدبابيس الخلفي (في اتجاه Z السالب)
     if (!session.inGutter && ball.mesh.position.z < PIN_BACK_Z) {
-      notifyBallPastPins();
       ball.velocity.set(0, 0, 0);
       ball.mesh.position.y = BALL_RADIUS;
       session.gameState = GAME_STATE.SETTLING;
       session.settleTimer = 0;
-      showGameEndOverlay();
       return;
     }
   }
 
   if (session.gameState === GAME_STATE.SETTLING) {
     session.settleTimer += dt;
-    if (!_gutterPending && session.settleTimer > 0.9 && pinsSleeping()) {
-      finishThrow();
+    
+    // ننتظر حتى تستقر الدبابيس تماماً (الحد الأدنى 1.2 ثانية لتأمين الحركة البصرية)
+    if (session.settleTimer > 1.2 && pinsSleeping()) {
+      if (_gutterPending) {
+        _gutterPending = false;
+        session.inGutter = false;
+        showGameEndOverlay(); // إظهار الشاشة فقط عند انتهاء الدورة كاملة واستقرارها
+        // Execute immediately - no setTimeout delay
+        gutterThrow();
+        resetBallForAim(true);
+      } else {
+        // رمية ناجحة وضربت دبابيس ونريد حساب النقاط
+        showGameEndOverlay(); // تظهر هلق بعد ما الدبابيس خلصت وقعتها!
+        notifyBallPastPins();
+        // Execute immediately - no setTimeout delay
+        finishThrow();
+      }
     }
   }
 }
@@ -179,7 +184,6 @@ function animate() {
     steps++;
   }
 
-  updatePowerUI();
   updateRoundSummary();
   updatePhysicsSidebar(rawDt);
   updateConfigControlsLock(() => session.gameState === GAME_STATE.AIMING || session.gameState === GAME_STATE.CHARGING);

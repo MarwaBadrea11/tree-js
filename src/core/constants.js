@@ -1,61 +1,66 @@
-
-
 import * as THREE from "three";
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PHYSICAL CONSTANTS - Strictly defined for realistic bowling pin simulation
+// ═══════════════════════════════════════════════════════════════════════════
 
-export const FIXED_DT = 1 / 120;      
+// Time integration - Semi-implicit Euler with fixed timestep (1/120 seconds)
+export const FIXED_DT = 1 / 120;  // 0.00833 seconds per physics frame
 
+export const GRAVITY = 9.81;
 
-export const GRAVITY = 9.81;           
+export const LANE_HALF_WIDTH = 1.08;
+export const LANE_START_Z    = 0.0;
+export const LANE_END_Z      = -37.9;
+export const PIN_HEAD_Z      = -34.0;
+export const PIN_BACK_Z      = -35.86;
 
-
-export const LANE_HALF_WIDTH = 1.08;    
-export const LANE_START_Z    = 0.0;     
-export const LANE_END_Z      = -37.9;   
-export const PIN_HEAD_Z      = -34.0;  
-// Back edge of the last pin row (row 3 at PIN_HEAD_Z - 3 * 0.62 = -35.86)
-// The ball is considered "past the pins" when it crosses this threshold.
-export const PIN_BACK_Z      = -35.86; 
-
-
-export const BALL_RADIUS       = 0.33;  
-export const DEFAULT_BALL_MASS = 7.0;   
+export const BALL_RADIUS       = 0.33;
+export const DEFAULT_BALL_MASS = 7.0;
 
 export const BALL_START = new THREE.Vector3(0, BALL_RADIUS, -1.1);
-export const BALL_DAMPING     = 0.998;  
-export const WALL_RESTITUTION = 0.4;   
+export const BALL_DAMPING     = 0.998;
+export const WALL_RESTITUTION = 0.4;
 
+// ── Pin Rigid Body Properties ─────────────────────────────────────────────
+// Mass: 1.5 kg (regulation bowling pin mass)
+// Collision radius: 0.20 m (effective cylindrical collision detection)
+export const PIN_MASS             = 1.5;
+export const PIN_COLLIDER_RADIUS  = 0.20;
+export const PIN_CAP_RADIUS       = 0.06;
+export const PIN_HALF_SEGMENT     = 0.40;
 
-export const PIN_MASS             = 1.5;   
-export const PIN_COLLIDER_RADIUS  = 0.12;  
-export const PIN_CAP_RADIUS       = 0.06;  
-export const PIN_HALF_SEGMENT     = 0.40;  
-export const PIN_LINEAR_DAMPING   = 0.998; // was 0.994 – less air drag so pins fly freely
-export const PIN_ANGULAR_DAMPING  = 0.997; // was 0.992 – pins keep spinning after impact
+// ── Damping Coefficients (Frame-rate Independent) ─────────────────────────
+// Linear damping: 0.987 per frame (gradually reduces translational velocity)
+// Angular damping: 0.977 per frame (gradually reduces rotational velocity)
+export const PIN_LINEAR_DAMPING   = 0.987;
+export const PIN_ANGULAR_DAMPING  = 0.977;
 
+// ── Knockdown Detection ───────────────────────────────────────────────────
+// Tilt angle threshold: 28° (arccos of up vector dot product)
+// A pin is knocked down when: arccos(up_y) > 28°
+export const KNOCK_ANGLE = THREE.MathUtils.degToRad(28);
 
-export const KNOCK_ANGLE = THREE.MathUtils.degToRad(15);
+// ── Collision Restitution (Energy Conservation) ───────────────────────────
+// Ball-to-Pin: 0.22 (22% energy retained after collision)
+// Pin-to-Pin: 0.18 (18% energy retained - more energy loss in chain reactions)
+export const BALL_PIN_RESTITUTION = 0.22;
+export const PIN_PIN_RESTITUTION  = 0.18;
 
-// ── Collision coefficients of restitution ────────────────────────────────────
-export const BALL_PIN_RESTITUTION = 0.55;  // was 0.18 – realistic bowling elasticity
-export const PIN_PIN_RESTITUTION  = 0.48;  // was 0.14 – pins transfer energy snappily
-export const CONTACT_FRICTION     = 0.22;  // was 0.34 – less friction so tangential impulse doesn't bleed energy
+// ── Contact Friction ──────────────────────────────────────────────────────
+// Tangential friction coefficient for collision resolution
+export const CONTACT_FRICTION     = 0.18;
 
-// ── Aiming & charging ────────────────────────────────────────────────────────
-export const MIN_LAUNCH_SPEED = 5.0;    // m/s
-export const MAX_LAUNCH_SPEED = 18.0;   // m/s
-export const CHARGE_RATE      = 0.62;   // power/s when holding Space
-export const AIM_SPEED        = THREE.MathUtils.degToRad(58); // rad/s
-export const MAX_AIM_ANGLE    = THREE.MathUtils.degToRad(20); // rad
+export const MIN_LAUNCH_SPEED = 5.0;
+export const MAX_LAUNCH_SPEED = 18.0;
+export const CHARGE_RATE      = 0.62;
+export const AIM_SPEED        = THREE.MathUtils.degToRad(58);
+export const MAX_AIM_ANGLE    = THREE.MathUtils.degToRad(20);
 
-// ── Throw lifecycle timing ────────────────────────────────────────────────────
-export const MAX_ROLL_TIME = 8.5;       // s  max time before forcing settle
+export const MAX_ROLL_TIME = 8.5;
 
-// ── Camera anchor for aim phase (CRS-aligned) ────────────────────────────────
-/** Camera rests here during AIMING / CHARGING state. */
 export const AIM_CAM_POS = new THREE.Vector3(0, 1.68, 1.6);
 
-// ── Launch mode presets ───────────────────────────────────────────────────────
 export const LAUNCH_MODES = {
   normal: {
     key: "normal",
@@ -98,7 +103,6 @@ export const LAUNCH_MODES = {
   },
 };
 
-// ── Surface type presets ──────────────────────────────────────────────────────
 export const SURFACE_TYPES = {
   normal: {
     key: "normal",
@@ -132,7 +136,6 @@ export const SURFACE_TYPES = {
   },
 };
 
-// ── Ball type presets ─────────────────────────────────────────────────────────
 export const BALL_TYPES = {
   light: {
     key: "light",
@@ -169,6 +172,5 @@ export const BALL_TYPES = {
   },
 };
 
-// ── Music note sequences ──────────────────────────────────────────────────────
 export const MUSIC_LEAD_NOTES = [261.63, 329.63, 392.0, 523.25, 392.0, 329.63, 293.66, 392.0];
 export const MUSIC_BASS_NOTES = [130.81, 146.83, 164.81, 146.83];
